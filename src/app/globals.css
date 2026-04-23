@@ -1,0 +1,372 @@
+@import "tailwindcss";
+
+/* Hide system cursor — custom cursor is used instead */
+.custom-cursor-enabled,
+.custom-cursor-enabled body,
+.custom-cursor-enabled *,
+.custom-cursor-enabled *::before,
+.custom-cursor-enabled *::after {
+	cursor: none !important;
+}
+
+/* ─── Map Tailwind colour tokens to our CSS custom properties ─── */
+@theme {
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+	--color-card: var(--card);
+	--color-card-foreground: var(--card-foreground);
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-secondary: var(--secondary);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-accent: var(--accent);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-border: var(--border);
+	--color-input: var(--input);
+	--color-ring: var(--ring);
+
+	--radius: 1rem;
+}
+
+/* ─── Default theme vars (Emerald light) ─── */
+:root {
+	--background: #f0fdfa;
+	--foreground: #0f172a;
+	--card: #ffffff;
+	--card-foreground: #0f172a;
+	--primary: #10b981;
+	--primary-foreground: #ffffff;
+	--secondary: #f1f5f9;
+	--secondary-foreground: #0f172a;
+	--muted: #f1f5f9;
+	--muted-foreground: #64748b;
+	--accent: #d1fae5;
+	--accent-foreground: #065f46;
+	--border: #e2e8f0;
+	--input: #e2e8f0;
+	--ring: #10b981;
+}
+
+/* ─── Dark class override (used by dark themes) ─── */
+.dark {
+	--background: #020617;
+	--foreground: #f8fafc;
+	--card: #0f172a;
+	--card-foreground: #f8fafc;
+	--primary: #10b981;
+	--primary-foreground: #0f172a;
+	--secondary: #1e293b;
+	--secondary-foreground: #f8fafc;
+	--muted: #1e293b;
+	--muted-foreground: #94a3b8;
+	--accent: #064e3b;
+	--accent-foreground: #ecfdf5;
+	--border: #1e293b;
+	--input: #1e293b;
+	--ring: #10b981;
+}
+
+@layer base {
+	* {
+		border-color: var(--border);
+		box-sizing: border-box;
+	}
+
+	html {
+		scroll-behavior: smooth;
+	}
+
+	body {
+		background-color: var(--background);
+		color: var(--foreground);
+		/* Dot grid pattern */
+		background-image:
+			radial-gradient(
+				at 0% 0%,
+				hsla(152, 100%, 50%, 0.08) 0px,
+				transparent 50%
+			),
+			radial-gradient(
+				at 100% 0%,
+				hsla(189, 100%, 56%, 0.08) 0px,
+				transparent 50%
+			),
+			radial-gradient(var(--border) 1px, transparent 1px);
+		background-size:
+			100% 100%,
+			100% 100%,
+			24px 24px;
+		background-attachment: fixed;
+		transition:
+			background-color 0.3s,
+			color 0.3s;
+	}
+}
+
+/* ─── Claymorphism utilities ─── */
+.clay-card {
+	background: var(--card);
+	border-radius: var(--radius);
+	box-shadow:
+		6px 6px 12px rgba(0, 0, 0, 0.07),
+		-6px -6px 12px rgba(255, 255, 255, 0.7);
+	border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.dark .clay-card {
+	box-shadow:
+		6px 6px 12px rgba(0, 0, 0, 0.4),
+		-6px -6px 12px rgba(255, 255, 255, 0.04);
+	border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ─── Prose styles for theory content ─── */
+.prose-theory p,
+.prose-theory li {
+	line-height: 1.8;
+}
+
+.prose-theory code {
+	background: var(--secondary);
+	color: var(--primary);
+	padding: 0.1em 0.4em;
+	border-radius: 4px;
+	font-size: 0.85em;
+	font-family: "JetBrains Mono", monospace;
+}
+
+.prose-theory strong {
+	font-weight: 700;
+	color: var(--foreground);
+}
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+::-webkit-scrollbar-thumb {
+	background: var(--border);
+	border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+	background: var(--muted-foreground);
+}
+
+/* ─── Clerk portal / account-panel text fix ─── */
+/* The modal is portalled to <body> root; force all text/inputs/buttons
+   inside it to use our themed CSS variables so nothing goes invisible. */
+.cl-userProfile-root,
+.cl-rootBox,
+.cl-card,
+.cl-modalContent,
+.cl-userButtonPopoverCard {
+	color: var(--foreground) !important;
+}
+
+.cl-userButtonPopoverCard,
+.cl-userProfile-root,
+.cl-card,
+.cl-modalContent {
+	backdrop-filter: blur(18px) !important;
+	background-color: color-mix(
+		in oklab,
+		var(--card) 92%,
+		transparent
+	) !important;
+}
+
+.cl-userButtonPopoverCard *,
+.cl-userProfile-root *,
+.cl-card *,
+.cl-modalContent * {
+	color: var(--foreground) !important;
+}
+
+.cl-userProfile-root *,
+.cl-modalContent *,
+.cl-card * {
+	--clerk-text: var(--foreground);
+}
+
+/* Section titles & labels */
+.cl-profileSectionTitle,
+.cl-profileSectionTitleText,
+.cl-profileSectionItemTitle,
+.cl-formFieldLabel,
+.cl-formFieldHintText,
+.cl-headerTitle,
+.cl-headerSubtitle,
+.cl-userPreviewMainIdentifier,
+.cl-userPreviewSecondaryIdentifier,
+.cl-navbarButtonText,
+.cl-accordionTriggerButton,
+.cl-formFieldInputShowPasswordButton,
+.cl-alertText,
+.cl-text {
+	color: var(--foreground) !important;
+}
+
+.cl-muted,
+.cl-formFieldErrorText,
+.cl-formFieldSuccessText {
+	color: var(--muted-foreground) !important;
+}
+
+/* Inputs */
+.cl-formFieldInput {
+	background-color: var(--input) !important;
+	border-color: var(--border) !important;
+	color: var(--foreground) !important;
+}
+
+/* Nav sidebar */
+.cl-navbar {
+	background-color: color-mix(
+		in oklab,
+		var(--secondary) 94%,
+		transparent
+	) !important;
+}
+
+.cl-navbar,
+.cl-navbarButtons,
+.cl-navbarMobileMenuRow,
+.cl-navbarButton,
+.cl-navbarButtonIcon,
+.cl-navbarButtonText,
+.cl-navbarTitle,
+.cl-navbarSubtitle,
+.cl-headerTitle,
+.cl-headerSubtitle {
+	color: var(--foreground) !important;
+}
+
+.cl-navbarButton {
+	border-radius: 12px !important;
+}
+
+.cl-navbarButton.cl-active {
+	background: color-mix(in oklab, var(--accent) 35%, transparent) !important;
+	color: var(--foreground) !important;
+}
+
+/* Cards / page scroll area */
+.cl-pageScrollBox,
+.cl-page {
+	background-color: var(--card) !important;
+	color: var(--foreground) !important;
+}
+
+/* Reduce boxed appearance of internal sections */
+.cl-profileSection {
+	border: none !important;
+	padding-inline: 0 !important;
+	box-shadow: none !important;
+}
+
+.cl-profileSectionContent {
+	background: transparent !important;
+}
+
+.cl-accordion,
+.cl-accordionItem {
+	box-shadow: none !important;
+	background: transparent !important;
+}
+
+/* Buttons */
+.cl-formButtonPrimary {
+	background-color: var(--primary) !important;
+	color: var(--primary-foreground) !important;
+}
+
+.cl-formButtonReset,
+.cl-profileSectionPrimaryButton {
+	color: var(--foreground) !important;
+	border-color: var(--border) !important;
+}
+
+/* Badge */
+.cl-badge {
+	background-color: var(--primary) !important;
+	color: var(--primary-foreground) !important;
+}
+
+/* Hide Clerk branding footer */
+.cl-footer,
+.cl-internal-b3fm6y {
+	display: none !important;
+}
+
+/* ─── Clerk user-menu harmony (dropdown from avatar) ─── */
+.cl-userButtonPopoverCard {
+	background: color-mix(in oklab, var(--card) 94%, transparent) !important;
+	border: 1px solid color-mix(in oklab, var(--border) 90%, transparent) !important;
+	box-shadow:
+		0 14px 40px rgba(0, 0, 0, 0.28),
+		0 0 0 1px color-mix(in oklab, var(--primary) 18%, transparent) !important;
+	color: var(--foreground) !important;
+}
+
+.cl-userButtonPopoverMain,
+.cl-userPreview,
+.cl-userButtonPopoverActions,
+.cl-userButtonPopoverFooter {
+	background: transparent !important;
+	color: var(--foreground) !important;
+}
+
+.cl-userPreview {
+	border: 1px solid color-mix(in oklab, var(--border) 85%, transparent) !important;
+	border-radius: 14px !important;
+	padding: 10px !important;
+}
+
+.cl-userPreviewMainIdentifier {
+	color: var(--foreground) !important;
+	font-weight: 700 !important;
+}
+
+.cl-userPreviewSecondaryIdentifier {
+	color: var(--muted-foreground) !important;
+}
+
+.cl-userButtonPopoverActionButton {
+	background: transparent !important;
+	border: 1px solid transparent !important;
+	border-radius: 12px !important;
+	color: var(--foreground) !important;
+	transition:
+		background-color 0.15s ease,
+		border-color 0.15s ease,
+		color 0.15s ease !important;
+}
+
+.cl-userButtonPopoverActionButton:hover,
+.cl-userButtonPopoverActionButton:focus-visible {
+	background: color-mix(
+		in oklab,
+		var(--secondary) 88%,
+		transparent
+	) !important;
+	border-color: color-mix(
+		in oklab,
+		var(--border) 90%,
+		transparent
+	) !important;
+	color: var(--foreground) !important;
+}
+
+.cl-userButtonPopoverActionButtonText {
+	color: var(--foreground) !important;
+}
+
+.cl-userButtonPopoverActionButtonIcon {
+	color: var(--muted-foreground) !important;
+}
