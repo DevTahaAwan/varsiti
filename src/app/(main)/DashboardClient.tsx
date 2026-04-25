@@ -86,7 +86,7 @@ export default function DashboardClient({ userId: clerkUserId }: { userId: strin
 
 	return (
 		<div className="mx-auto max-w-7xl space-y-10 py-6 md:py-10">
-			<motion.div
+			<motion.section
 				initial={{ y: 30, opacity: 0, scale: 0.98 }}
 				animate={{ y: 0, opacity: 1, scale: 1 }}
 				transition={{ type: "spring", stiffness: 200, damping: 20 }}
@@ -147,9 +147,9 @@ export default function DashboardClient({ userId: clerkUserId }: { userId: strin
 						</div>
 					</div>
 				</div>
-			</motion.div>
+			</motion.section>
 
-			<motion.div
+			<motion.section
 				variants={containerVariants}
 				initial="hidden"
 				animate="show"
@@ -175,9 +175,9 @@ export default function DashboardClient({ userId: clerkUserId }: { userId: strin
 					label="Practice Tasks"
 					value="50+"
 				/>
-			</motion.div>
+			</motion.section>
 
-			<motion.div
+			<motion.section
 				initial={{ opacity: 0, y: 12 }}
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.35 }}
@@ -204,9 +204,9 @@ export default function DashboardClient({ userId: clerkUserId }: { userId: strin
 						Open About Page <ArrowRight size={16} />
 					</Link>
 				</div>
-			</motion.div>
+			</motion.section>
 
-			<div>
+			<section>
 				<div className="mb-6 flex items-center gap-3">
 					<div className="rounded-xl bg-primary/10 p-2 text-primary">
 						<BookOpen size={22} />
@@ -300,7 +300,7 @@ export default function DashboardClient({ userId: clerkUserId }: { userId: strin
 						);
 					})}
 				</motion.div>
-			</div>
+			</section>
 
 			<motion.section
 				initial={{ opacity: 0, y: 12 }}

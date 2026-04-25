@@ -17,9 +17,15 @@ function LinkedInMark() {
   );
 }
 
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Developer's Note",
+};
+
 export default function AboutPage() {
   return (
-    <div className="max-w-4xl mx-auto py-8 md:py-12">
+    <section className="max-w-4xl mx-auto py-8 md:py-12">
       <div className="rounded-3xl border border-border/60 bg-card shadow-sm p-6 md:p-10 space-y-8">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary mb-2">About Varsiti</p>
@@ -85,6 +91,6 @@ export default function AboutPage() {
           </p>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
