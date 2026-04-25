@@ -15,20 +15,20 @@ export const metadata: Metadata = {
 		process.env.NEXT_PUBLIC_APP_URL || "http://varsiti.vercel.app",
 	),
 	title: {
-		default: "Varsiti | Pakistan’s Student Hub",
+		default: "Varsiti | Master C++, OOP & DSA for Pakistan's Tech Students",
 		template: "%s | Varsiti",
 	},
 	description:
-		"Master C++ from Fundamentals to Advanced OOP and DSA with AI-powered guidance. Varsiti is Pakistan's premier student hub for learning.",
+		"Master C++ from fundamentals to advanced OOP and DSA with AI-powered guidance. Join Pakistan’s premier student hub to build your coding portfolio and career.",
 	openGraph: {
-		title: "Varsiti | Pakistan’s Student Hub",
+		title: "Varsiti | Master C++, OOP & DSA for Pakistan's Tech Students",
 		description:
-			"Master C++ from Fundamentals to Advanced OOP and DSA with AI-powered guidance.",
+			"Master C++ from fundamentals to advanced OOP and DSA with AI-powered guidance. Join Pakistan’s premier student hub to build your coding portfolio and career.",
 		url: "/",
 		siteName: "Varsiti",
 		images: [
 			{
-				url: "/og-image.png",
+				url: "/og-image.jpg",
 				width: 1200,
 				height: 630,
 				alt: "Varsiti Open Graph Image",
@@ -39,10 +39,10 @@ export const metadata: Metadata = {
 	},
 	twitter: {
 		card: "summary_large_image",
-		title: "Varsiti | Pakistan’s Student Hub",
+		title: "Varsiti | Master C++, OOP & DSA for Pakistan's Tech Students",
 		description:
-			"Master C++ from Fundamentals to Advanced OOP and DSA with AI-powered guidance.",
-		images: ["/og-image.png"],
+			"Master C++ from fundamentals to advanced OOP and DSA with AI-powered guidance. Join Pakistan’s premier student hub to build your coding portfolio and career.",
+		images: ["/og-image.jpg"],
 	},
 	alternates: {
 		canonical: "/",
