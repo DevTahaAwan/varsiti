@@ -7,6 +7,8 @@ import { AIAssistantProvider } from "@/lib/AIAssistantContext";
 import CustomCursor from "@/components/CustomCursor";
 import CodeBackground from "@/components/CodeBackground";
 import AIAssistantMount from "@/components/AIAssistantMount";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -74,11 +76,13 @@ export default function RootLayout({
 							</main>
 							<footer className="mt-auto py-6 text-center text-xs text-muted-foreground/40 font-light flex flex-col items-center gap-1">
 								<span>Build with ❤️ by Hafiz</span>
-								<span className="opacity-40">v1.1.0</span>
+								<span className="opacity-40">v1.2.0</span>
 							</footer>
 							<AIAssistantMount />
 						</AIAssistantProvider>
 					</ThemeProvider>
+					<Analytics />
+					<SpeedInsights />
 				</body>
 			</html>
 		</ClerkProvider>
