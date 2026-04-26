@@ -72,8 +72,9 @@ export default function RootLayout({
 							<main className="flex-grow flex flex-col">
 								{children}
 							</main>
-							<footer className="mt-auto py-6 text-center text-sm text-muted-foreground font-light">
-								Build with ❤️ by Hafiz
+							<footer className="mt-auto py-6 text-center text-xs text-muted-foreground/40 font-light flex flex-col items-center gap-1">
+								<span>Build with ❤️ by Hafiz</span>
+								<span className="opacity-40">v1.1.0</span>
 							</footer>
 							<AIAssistantMount />
 						</AIAssistantProvider>

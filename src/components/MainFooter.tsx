@@ -17,7 +17,7 @@ export default function MainFooter() {
       <div className="space-y-0.5">
         <div className="flex items-center gap-2">
           <p className="text-sm font-semibold text-foreground">© Copyright Varstiti Inc.</p>
-          <span className="px-2 py-0.5 text-[10px] font-bold tracking-wider rounded-md bg-primary/10 text-primary border border-primary/20">v1.0.0</span>
+          <span className="px-2 py-0.5 text-[10px] font-bold tracking-wider rounded-md bg-primary/10 text-primary border border-primary/20">v1.1.0</span>
         </div>
         <p className="text-xs text-muted-foreground">All rights reserved • Crafted for focused OOP learning and exam excellence.</p>
       </div>
