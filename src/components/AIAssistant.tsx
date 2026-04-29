@@ -12,6 +12,8 @@ import {
 	Sparkles,
 } from "lucide-react";
 import { useAIAssistant } from "@/lib/AIAssistantContext";
+import { useAuth } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 
 // Detect code blocks in a message and split into parts
 function parseMessage(
@@ -147,6 +149,8 @@ function MessageBubble({
 export default function AIAssistant() {
 	const { isOpen, openChat, closeChat, messages, sendMessage, isLoading } =
 		useAIAssistant();
+	const { userId } = useAuth();
+	const router = useRouter();
 	const [input, setInput] = useState("");
 	const bottomRef = useRef<HTMLDivElement>(null);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -166,6 +170,10 @@ export default function AIAssistant() {
 	}, [input]);
 
 	const handleSend = () => {
+		if (!userId) {
+			router.push("/sign-in");
+			return;
+		}
 		const msg = input.trim();
 		if (!msg || isLoading) return;
 		setInput("");
@@ -207,7 +215,7 @@ export default function AIAssistant() {
 							stiffness: 300,
 							damping: 30,
 						}}
-						className={`fixed bottom-6 right-6 z-50 ${isExpandedComposer ? "w-[42rem] h-[min(52rem,92vh)]" : hasConversation ? "w-[30rem] h-[min(44rem,90vh)]" : "w-96 h-[560px] max-h-[90vh]"} bg-card border border-border rounded-3xl shadow-2xl flex flex-col overflow-hidden`}
+						className={`fixed bottom-4 right-4 left-4 sm:left-auto sm:bottom-6 sm:right-6 z-50 ${isExpandedComposer ? "sm:w-[42rem] h-[min(52rem,92vh)]" : hasConversation ? "sm:w-[30rem] h-[min(44rem,90vh)]" : "sm:w-96 h-[560px] max-h-[90vh]"} w-auto bg-card border border-border rounded-3xl shadow-2xl flex flex-col overflow-hidden`}
 						style={{
 							boxShadow:
 								"0 0 40px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.05)",

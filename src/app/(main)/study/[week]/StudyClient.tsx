@@ -960,7 +960,7 @@ export default function StudyClient({
                     <div className="h-3 w-3 rounded-full bg-green-500/80" />
                     <span className="ml-2 font-mono text-xs text-gray-400">solution.cpp</span>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                     <button
                       onClick={() =>
                         openChat(
@@ -971,7 +971,7 @@ export default function StudyClient({
                           }`,
                         )
                       }
-                      className="flex items-center gap-1.5 rounded-lg bg-[#2d2d2d] px-4 py-1.5 text-xs font-bold text-white transition-colors hover:bg-[#3d3d3d]"
+                      className="flex items-center gap-1.5 rounded-lg bg-[#2d2d2d] px-3 py-1 sm:px-6 sm:py-2 text-sm sm:text-base font-bold text-white transition-colors hover:bg-[#3d3d3d]"
                     >
                       <Zap size={13} className="text-[#a855f7]" />
                       Ask AI
@@ -979,7 +979,7 @@ export default function StudyClient({
                     <button
                       onClick={handleRunStudyCode}
                       disabled={isStudyEvaluating}
-                      className="flex items-center gap-2 rounded-lg bg-primary px-5 py-1.5 text-xs font-bold text-primary-foreground transition-all hover:bg-primary/90 active:scale-95 disabled:opacity-60"
+                      className="flex items-center gap-2 rounded-lg bg-primary px-3 py-1 sm:px-6 sm:py-2 text-sm sm:text-base font-bold text-primary-foreground transition-all hover:bg-primary/90 active:scale-95 disabled:opacity-60"
                     >
                       {isStudyEvaluating ? <Loader2 size={13} className="animate-spin" /> : <Code size={13} />}
                       {isStudyEvaluating ? "Analyzing..." : "Run Code"}
@@ -1581,7 +1581,7 @@ export default function StudyClient({
                           </div>
 
                           <div className="overflow-hidden rounded-2xl border border-border shadow-sm">
-                            <div className="flex items-center justify-between gap-3 bg-[#1e1e1e] px-4 py-2.5">
+                              <div className="flex flex-wrap items-center justify-between gap-3 bg-[#1e1e1e] px-4 py-2.5">
                               <div className="flex items-center gap-2">
                                 <div className="h-3 w-3 rounded-full bg-red-500/80" />
                                 <div className="h-3 w-3 rounded-full bg-yellow-500/80" />
@@ -1596,7 +1596,7 @@ export default function StudyClient({
                                   examState.sectionStatus.coding !== "active" ||
                                   evaluatingCodingId === currentCodingQuestion.id
                                 }
-                                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-1.5 text-xs font-bold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                                className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1 sm:px-6 sm:py-2 text-sm sm:text-base font-bold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
                               >
                                 {evaluatingCodingId === currentCodingQuestion.id ? (
                                   <Loader2 size={13} className="animate-spin" />
