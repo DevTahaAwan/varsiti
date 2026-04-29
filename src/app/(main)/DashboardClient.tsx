@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 import {
 	ArrowRight,
 	Award,
@@ -74,6 +74,7 @@ function getInitialQuote() {
 
 export default function DashboardClient({ userId: clerkUserId }: { userId: string }) {
 	const { user } = useUser();
+	const { isSignedIn } = useAuth();
 	const weeksList = useMemo(
 		() =>
 			Object.keys(course)
@@ -116,25 +117,35 @@ export default function DashboardClient({ userId: clerkUserId }: { userId: strin
 						</p>
 
 						<div className="flex flex-wrap gap-3">
-							<Link
-								href={`/study/${lastWeekId}`}
-								onClick={() =>
-									window.localStorage.setItem(
-										`varsiti-last-week-${clerkUserId}`,
-										String(lastWeekId),
-									)
-								}
-								className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold text-primary shadow-lg transition-transform hover:scale-105 active:scale-95"
-							>
-								<TrendingUp size={16} /> Continue Week{" "}
-								{lastWeekId}
-							</Link>
-							<Link
-								href="/study/1"
-								className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/20 px-5 py-3 text-sm font-semibold transition-colors hover:bg-white/30"
-							>
-								Start from Beginning
-							</Link>
+							{isSignedIn ? (
+								<>
+									<Link
+										href={`/study/${lastWeekId}`}
+										onClick={() =>
+											window.localStorage.setItem(
+												`varsiti-last-week-${clerkUserId}`,
+												String(lastWeekId),
+											)
+										}
+										className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold text-primary shadow-lg transition-transform hover:scale-105 active:scale-95"
+									>
+										<TrendingUp size={16} /> Continue Learning
+									</Link>
+									<Link
+										href="/study/1"
+										className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/20 px-5 py-3 text-sm font-semibold transition-colors hover:bg-white/30"
+									>
+										Start from Beginning
+									</Link>
+								</>
+							) : (
+								<Link
+									href="/select-language"
+									className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold text-primary shadow-lg transition-transform hover:scale-105 active:scale-95"
+								>
+									<Zap size={16} /> Get Started
+								</Link>
+							)}
 						</div>
 					</div>
 

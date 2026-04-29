@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import TopNav from "@/components/TopNav";
+import SubNav from "@/components/SubNav";
 import Sidebar from "@/components/Sidebar";
 import MainFooter from "@/components/MainFooter";
 
@@ -35,6 +36,7 @@ export default function MainLayout({
 					sidebarOpen={sidebarOpen}
 					toggleSidebar={() => setSidebarOpen((o) => !o)}
 				/>
+				<SubNav />
 				<main
 					id="main-scroll-container"
 					className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 relative z-10"

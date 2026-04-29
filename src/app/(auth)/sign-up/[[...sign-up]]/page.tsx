@@ -8,6 +8,7 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <SignUp
+      forceRedirectUrl="/select-language"
       appearance={{
         layout: { applicationName: "Varsity" },
         elements: {
