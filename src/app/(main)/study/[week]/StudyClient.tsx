@@ -18,6 +18,7 @@ import {
   Key,
   Loader2,
   PlayCircle,
+  Share2,
   TimerReset,
   Trophy,
   XCircle,
@@ -1727,11 +1728,23 @@ export default function StudyClient({
                     <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
                       Review your section scores, check the revealed outputs, and revisit any coding feedback before your real exam.
                     </p>
+                    {/* LinkedIn Share Button */}
+                    <a
+                      id="linkedin-share-btn"
+                      href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent("https://varsiti.xyz")}&summary=${encodeURIComponent(`I scored ${examState.scores.total}/${examWeek!.mockTest.totalMarks} on a C++ OOP Mock Test on Varsiti — Pakistan's premier student coding hub! 🚀 #CppProgramming #OOP #Varsiti`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-4 inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 active:scale-95"
+                      style={{ backgroundColor: "#0077B5" }}
+                    >
+                      <Share2 size={15} />
+                      Share on LinkedIn
+                    </a>
                   </div>
                   <div className="rounded-3xl bg-card px-6 py-5 text-center shadow-sm">
                     <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Final Score</p>
                     <p className="mt-1 text-4xl font-black text-primary">
-                      {examState.scores.total}/{examWeek.mockTest.totalMarks}
+                      {examState.scores.total}/{examWeek!.mockTest.totalMarks}
                     </p>
                   </div>
                 </div>

@@ -13,9 +13,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-	metadataBase: new URL(
-		process.env.NEXT_PUBLIC_APP_URL || "http://varsiti.vercel.app",
-	),
+	metadataBase: new URL("https://varsiti.xyz"),
 	title: {
 		default: "Varsiti | Master C++, OOP & DSA for Pakistan's Tech Students",
 		template: "%s | Varsiti",
@@ -74,9 +72,11 @@ export default function RootLayout({
 							<main className="flex-grow flex flex-col">
 								{children}
 							</main>
-							<footer className="mt-auto py-6 text-center text-xs text-muted-foreground/40 font-light flex flex-col items-center gap-1">
-								<span>Build with ❤️ by Hafiz</span>
-								<span className="opacity-40">v1.2.0</span>
+							<footer className="mt-auto py-6 text-center text-xs text-foreground/60 font-medium flex flex-col items-center gap-1">
+								<span style={{ textShadow: "0 0 12px rgba(var(--primary-rgb, 99 102 241) / 0.3)" }}>
+									Build with ❤️ by Hafiz
+								</span>
+								<span className="opacity-50">v1.4.0</span>
 							</footer>
 							<AIAssistantMount />
 						</AIAssistantProvider>

@@ -2,11 +2,13 @@ import { MetadataRoute } from 'next';
 import { course } from '@/lib/courseData';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://varsiti.vercel.app';
+  const baseUrl = 'https://varsiti.xyz';
 
   const staticRoutes = [
     '',
     '/about',
+    '/study',
+    '/practice',
     '/sign-in',
     '/sign-up',
   ].map((route) => ({
