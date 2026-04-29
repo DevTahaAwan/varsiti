@@ -15,16 +15,16 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
 	metadataBase: new URL("https://varsiti.xyz"),
 	title: {
-		default: "Varsiti | Master C++, OOP & DSA for Pakistan's Tech Students",
+		default: "Varsiti | Your AI-Powered C++ Learning Assistant",
 		template: "%s | Varsiti",
 	},
 	description:
-		"Master C++ from fundamentals to advanced OOP and DSA with AI-powered guidance. Join Pakistan’s premier student hub to build your coding portfolio and career.",
+		"Master C++, OOP, and DSA with real-time AI guidance. Built for students who want to excel in coding and exams.",
 	openGraph: {
-		title: "Varsiti | Master C++, OOP & DSA for Pakistan's Tech Students",
+		title: "Varsiti | Your AI-Powered C++ Learning Assistant",
 		description:
-			"Master C++ from fundamentals to advanced OOP and DSA with AI-powered guidance. Join Pakistan’s premier student hub to build your coding portfolio and career.",
-		url: "/",
+			"Master C++, OOP, and DSA with real-time AI guidance. Built for students who want to excel in coding and exams.",
+		url: "https://varsiti.xyz",
 		siteName: "Varsiti",
 		images: [
 			{
@@ -39,9 +39,8 @@ export const metadata: Metadata = {
 	},
 	twitter: {
 		card: "summary_large_image",
-		title: "Varsiti | Master C++, OOP & DSA for Pakistan's Tech Students",
-		description:
-			"Master C++ from fundamentals to advanced OOP and DSA with AI-powered guidance. Join Pakistan’s premier student hub to build your coding portfolio and career.",
+		title: "Varsiti | Master C++ with AI",
+		description: "Stop struggling with code. Start mastering it with Varsiti.",
 		images: ["/og-image.jpg"],
 	},
 	alternates: {
