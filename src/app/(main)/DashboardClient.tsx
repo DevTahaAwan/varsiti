@@ -1,7 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { useState } from "react";
 import { useUser, useAuth } from "@clerk/nextjs";
 import {
 	ArrowRight,
@@ -16,23 +15,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-import { course } from "@/lib/courseData";
-import type { CourseWeek } from "@/lib/courseTypes";
 import SuggestionForm from "@/components/SuggestionForm";
-
-const containerVariants = {
-	hidden: { opacity: 0 },
-	show: { opacity: 1, transition: { staggerChildren: 0.08 } },
-};
-
-const itemVariants = {
-	hidden: { y: 20, opacity: 0 },
-	show: {
-		y: 0,
-		opacity: 1,
-		transition: { type: "spring", stiffness: 300, damping: 24 },
-	},
-};
 
 const MOTIVATIONAL_QUOTES = [
 	{
@@ -72,26 +55,25 @@ function getInitialQuote() {
 	return MOTIVATIONAL_QUOTES[index];
 }
 
-export default function DashboardClient({ userId: clerkUserId }: { userId: string }) {
+export default function DashboardClient({ 
+	userId: clerkUserId, 
+	weeksList, 
+	courseMeta 
+}: { 
+	userId: string;
+	weeksList: number[];
+	courseMeta: Record<number, any>;
+}) {
 	const { user } = useUser();
 	const { isSignedIn } = useAuth();
-	const weeksList = useMemo(
-		() =>
-			Object.keys(course)
-				.map(Number)
-				.sort((a, b) => a - b),
-		[],
-	);
+	
 	const [lastWeekId] = useState<number>(() => getInitialWeekId(weeksList, clerkUserId));
 	const [quote] = useState(() => getInitialQuote());
 
 	return (
 		<div className="mx-auto max-w-7xl space-y-10 py-6 md:py-10">
-			<motion.section
-				initial={{ y: 30, opacity: 0, scale: 0.98 }}
-				animate={{ y: 0, opacity: 1, scale: 1 }}
-				transition={{ type: "spring", stiffness: 200, damping: 20 }}
-				className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-primary to-primary/70 p-8 text-primary-foreground shadow-2xl md:p-12"
+			<section
+				className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-primary to-primary/70 p-8 text-primary-foreground shadow-2xl md:p-12 animate-fade-in-up"
 			>
 				<div className="absolute right-0 top-0 h-64 w-64 translate-x-8 -translate-y-8 rounded-full bg-white/10 blur-3xl" />
 				<div className="absolute bottom-0 left-0 h-64 w-64 -translate-x-8 translate-y-8 rounded-full bg-black/10 blur-3xl" />
@@ -158,13 +140,10 @@ export default function DashboardClient({ userId: clerkUserId }: { userId: strin
 						</div>
 					</div>
 				</div>
-			</motion.section>
+			</section>
 
-			<motion.section
-				variants={containerVariants}
-				initial="hidden"
-				animate="show"
-				className="grid grid-cols-2 gap-4 md:grid-cols-4"
+			<section
+				className="grid grid-cols-2 gap-4 md:grid-cols-4 animate-fade-in-up animation-delay-100"
 			>
 				<StatCard
 					icon={<BookOpen size={20} />}
@@ -186,13 +165,10 @@ export default function DashboardClient({ userId: clerkUserId }: { userId: strin
 					label="Practice Tasks"
 					value="50+"
 				/>
-			</motion.section>
+			</section>
 
-			<motion.section
-				initial={{ opacity: 0, y: 12 }}
-				animate={{ opacity: 1, y: 0 }}
-				transition={{ duration: 0.35 }}
-				className="rounded-3xl border border-border/60 bg-card p-6 shadow-sm md:p-7"
+			<section
+				className="rounded-3xl border border-border/60 bg-card p-6 shadow-sm md:p-7 animate-fade-in-up animation-delay-200"
 			>
 				<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 					<div>
@@ -215,10 +191,10 @@ export default function DashboardClient({ userId: clerkUserId }: { userId: strin
 						Open About Page <ArrowRight size={16} />
 					</Link>
 				</div>
-			</motion.section>
+			</section>
 
 			<section>
-				<div className="mb-6 flex items-center gap-3">
+				<div className="mb-6 flex items-center gap-3 animate-fade-in-up animation-delay-300">
 					<div className="rounded-xl bg-primary/10 p-2 text-primary">
 						<BookOpen size={22} />
 					</div>
@@ -227,20 +203,18 @@ export default function DashboardClient({ userId: clerkUserId }: { userId: strin
 					</h2>
 				</div>
 
-				<motion.div
-					variants={containerVariants}
-					initial="hidden"
-					animate="show"
+				<div
 					className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
 				>
-					{weeksList.map((weekNumber) => {
-						const data = course[weekNumber] as CourseWeek;
+					{weeksList.map((weekNumber, i) => {
+						const data = courseMeta[weekNumber];
 						const isExam = data.type === "exam";
 
 						return (
-							<motion.div
+							<div
 								key={weekNumber}
-								variants={itemVariants}
+								className={`animate-fade-in-up`}
+								style={{ animationDelay: `${350 + i * 50}ms` }}
 							>
 								<Link
 									href={`/study/${weekNumber}`}
@@ -307,17 +281,14 @@ export default function DashboardClient({ userId: clerkUserId }: { userId: strin
 										</div>
 									</div>
 								</Link>
-							</motion.div>
+							</div>
 						);
 					})}
-				</motion.div>
+				</div>
 			</section>
 
-			<motion.section
-				initial={{ opacity: 0, y: 12 }}
-				animate={{ opacity: 1, y: 0 }}
-				transition={{ duration: 0.35 }}
-				className="rounded-3xl border border-border/60 bg-card p-6 shadow-sm md:p-7"
+			<section
+				className="rounded-3xl border border-border/60 bg-card p-6 shadow-sm md:p-7 animate-fade-in-up animation-delay-500"
 			>
 				<div className="mb-5">
 					<p className="mb-2 text-xs font-bold uppercase tracking-widest text-primary">
@@ -334,7 +305,7 @@ export default function DashboardClient({ userId: clerkUserId }: { userId: strin
 				</div>
 
 				<SuggestionForm />
-			</motion.section>
+			</section>
 		</div>
 	);
 }
@@ -349,8 +320,7 @@ function StatCard({
 	value: string;
 }) {
 	return (
-		<motion.div
-			variants={itemVariants}
+		<div
 			className="flex items-center gap-4 rounded-2xl border border-border/60 bg-card p-5 transition-shadow hover:shadow-md"
 		>
 			<div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -362,7 +332,7 @@ function StatCard({
 				</p>
 				<p className="text-xl font-bold">{value}</p>
 			</div>
-		</motion.div>
+		</div>
 	);
 }
 

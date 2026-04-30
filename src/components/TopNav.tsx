@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Palette } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useTheme, THEMES } from "@/lib/ThemeContext";
 import { Playfair_Display } from "next/font/google";
 
@@ -18,24 +17,20 @@ const logoFont = Playfair_Display({
 function MenuIcon({ isOpen }: { isOpen: boolean }) {
 	return (
 		<div className="w-5 h-5 flex flex-col justify-center gap-[5px] relative">
-			<motion.span
-				animate={isOpen ? { rotate: 45, y: 5 } : { rotate: 0, y: 0 }}
-				transition={{ duration: 0.25, ease: "easeInOut" }}
-				className="block h-[2px] w-5 bg-current origin-center"
+			<span
+				className={`block h-[2px] w-5 bg-current origin-center transition-all duration-250 ease-in-out ${
+					isOpen ? "rotate-45 translate-y-[7px]" : "rotate-0 translate-y-0"
+				}`}
 			/>
-			<motion.span
-				animate={
-					isOpen
-						? { opacity: 0, scaleX: 0 }
-						: { opacity: 1, scaleX: 1 }
-				}
-				transition={{ duration: 0.15 }}
-				className="block h-[2px] w-5 bg-current"
+			<span
+				className={`block h-[2px] w-5 bg-current transition-all duration-150 ${
+					isOpen ? "opacity-0 scale-x-0" : "opacity-100 scale-x-100"
+				}`}
 			/>
-			<motion.span
-				animate={isOpen ? { rotate: -45, y: -5 } : { rotate: 0, y: 0 }}
-				transition={{ duration: 0.25, ease: "easeInOut" }}
-				className="block h-[2px] w-5 bg-current origin-center"
+			<span
+				className={`block h-[2px] w-5 bg-current origin-center transition-all duration-250 ease-in-out ${
+					isOpen ? "-rotate-45 -translate-y-[7px]" : "rotate-0 translate-y-0"
+				}`}
 			/>
 		</div>
 	);
@@ -105,20 +100,16 @@ export default function TopNav({
 						</span>
 					</button>
 
-					<AnimatePresence>
+					<div className={`transition-all duration-200 origin-top-right ${themePickerOpen ? 'opacity-100 scale-100 pointer-events-auto visible' : 'opacity-0 scale-95 pointer-events-none invisible'}`}>
 						{themePickerOpen && (
-							<>
-								<div
-									className="fixed inset-0 z-40"
-									onClick={() => setThemePickerOpen(false)}
-								/>
-								<motion.div
-									initial={{ opacity: 0, y: -8, scale: 0.95 }}
-									animate={{ opacity: 1, y: 0, scale: 1 }}
-									exit={{ opacity: 0, y: -8, scale: 0.95 }}
-									transition={{ duration: 0.15 }}
-									className="absolute right-0 top-12 z-50 bg-card border border-border rounded-2xl shadow-2xl p-4 w-72"
-								>
+							<div
+								className="fixed inset-0 z-40"
+								onClick={() => setThemePickerOpen(false)}
+							/>
+						)}
+						<div
+							className="absolute right-0 top-12 z-50 bg-card border border-border rounded-2xl shadow-2xl p-4 w-72"
+						>
 									<p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">
 										☀️ Light Themes
 									</p>
@@ -185,10 +176,8 @@ export default function TopNav({
 											</button>
 										))}
 									</div>
-								</motion.div>
-							</>
-						)}
-					</AnimatePresence>
+						</div>
+					</div>
 				</div>
 
 				{/* Auth */}

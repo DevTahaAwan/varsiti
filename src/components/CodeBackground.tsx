@@ -34,14 +34,6 @@ const SYMBOLS = [
 export default function CodeBackground() {
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none z-0 select-none" aria-hidden>
-      <style>{`
-        @keyframes float-code {
-          0%   { transform: translateY(0px) rotate(0deg); }
-          33%  { transform: translateY(-18px) rotate(2deg); }
-          66%  { transform: translateY(8px) rotate(-2deg); }
-          100% { transform: translateY(0px) rotate(0deg); }
-        }
-      `}</style>
       {SYMBOLS.map(([sym, left, top, size, opacity, dur, delay], i) => (
         <span
           key={i}

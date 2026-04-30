@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next';
-import { course } from '@/lib/courseData';
+import { getCourseList } from "@/lib/courseFetching";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://varsiti.xyz';
 
   const staticRoutes = [
@@ -18,8 +18,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: route === '' ? 1 : 0.8,
   }));
 
-  const dynamicRoutes = Object.keys(course).map((week) => ({
-    url: `${baseUrl}/study/${week}`,
+  const courseList = await getCourseList();
+  const dynamicRoutes = courseList.map((week) => ({
+    url: `${baseUrl}/study/${week.weekNumber}`,
     lastModified: new Date(),
     changeFrequency: 'monthly' as const,
     priority: 0.7,

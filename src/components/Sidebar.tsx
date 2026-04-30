@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
 	BookOpen,
@@ -14,7 +13,6 @@ import {
 	CheckCircle2,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { course } from "@/lib/courseData";
 import type { CourseWeek } from "@/lib/courseTypes";
 
 const NAV_SECTIONS = [
@@ -31,9 +29,7 @@ const NAV_SECTIONS = [
 		label: "OOP Course",
 		icon: <Layers size={15} />,
 		color: "text-primary",
-		weeks: Object.keys(course)
-			.map(Number)
-			.sort((a, b) => a - b),
+		weeks: [] as number[],
 		isPlaceholder: false,
 	},
 	{
@@ -48,8 +44,10 @@ const NAV_SECTIONS = [
 
 export default function Sidebar({
 	closeSidebar,
+	courseList,
 }: {
 	closeSidebar: () => void;
+	courseList: any[];
 }) {
 	const pathname = usePathname();
 	const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -73,7 +71,7 @@ export default function Sidebar({
 		return () => window.removeEventListener("storage", loadCompleted);
 	}, []);
 
-	const oopWeeks = NAV_SECTIONS.find((s) => s.id === "oop")?.weeks || [];
+	const oopWeeks = courseList.map(c => c.weekNumber);
 	const totalTopics = oopWeeks.length;
 	const completedTopics = oopWeeks.filter((w) =>
 		completedWeeks.includes(w),
@@ -140,24 +138,17 @@ export default function Sidebar({
 							)}
 						</button>
 
-						<AnimatePresence>
-							{openSections[section.id] && (
-								<motion.div
-									initial={{ height: 0, opacity: 0 }}
-									animate={{ height: "auto", opacity: 1 }}
-									exit={{ height: 0, opacity: 0 }}
-									transition={{ duration: 0.18 }}
-									className="overflow-hidden bg-card/35 backdrop-blur-md"
-								>
+						<div
+							className={`grid transition-[grid-template-rows] duration-200 ease-in-out ${openSections[section.id] ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
+						>
+							<div className="overflow-hidden bg-card/35 backdrop-blur-md">
 									{section.isPlaceholder ? (
 										<p className="text-xs text-muted-foreground italic px-5 py-2">
 											Coming soon!
 										</p>
 									) : (
-										section.weeks.map((w) => {
-											const weekData = course[
-												w
-											] as CourseWeek;
+										(section.id === "oop" ? oopWeeks : section.weeks).map((w) => {
+											const weekData = courseList.find(c => c.weekNumber === w);
 											const isActive =
 												pathname === `/study/${w}`;
 											const isCompleted =
@@ -211,9 +202,8 @@ export default function Sidebar({
 											);
 										})
 									)}
-								</motion.div>
-							)}
-						</AnimatePresence>
+								</div>
+							</div>
 					</div>
 				))}
 			</div>

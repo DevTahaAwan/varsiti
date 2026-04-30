@@ -115,6 +115,36 @@
 	border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
+/* ─── Animations ─── */
+@keyframes float-code {
+	0%   { transform: translateY(0px) rotate(0deg); }
+	33%  { transform: translateY(-18px) rotate(2deg); }
+	66%  { transform: translateY(8px) rotate(-2deg); }
+	100% { transform: translateY(0px) rotate(0deg); }
+}
+
+@keyframes fade-in-up {
+	0% {
+		opacity: 0;
+		transform: translateY(20px);
+	}
+	100% {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.animate-fade-in-up {
+	animation: fade-in-up 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+	opacity: 0;
+}
+
+.animation-delay-100 { animation-delay: 100ms; }
+.animation-delay-200 { animation-delay: 200ms; }
+.animation-delay-300 { animation-delay: 300ms; }
+.animation-delay-400 { animation-delay: 400ms; }
+.animation-delay-500 { animation-delay: 500ms; }
+
 .dark .clay-card {
 	box-shadow:
 		6px 6px 12px rgba(0, 0, 0, 0.4),

@@ -25,8 +25,6 @@ import {
   Zap,
 } from "lucide-react";
 
-import { course } from "@/lib/courseData";
-import { examMockWeeks } from "@/lib/examMockData";
 import type {
   CodingQuestion,
   CourseWeek,
@@ -383,16 +381,17 @@ function getEvalTone(status: EvalStatus) {
 export default function StudyClient({ 
   params, 
   initialElapsedSeconds, 
-  userId 
+  userId,
+  initialWeekData
 }: { 
   params: Promise<{ week: string }>;
   initialElapsedSeconds: number;
   userId: string;
+  initialWeekData: CourseWeek | null;
 }) {
   const { week } = use(params);
   const weekId = Number.parseInt(week, 10);
-  const rawWeekData = course[weekId] as CourseWeek | undefined;
-  const effectiveWeekData = rawWeekData?.type === "exam" ? examMockWeeks[weekId] || rawWeekData : rawWeekData;
+  const effectiveWeekData = initialWeekData;
 
   const { openChat, registerEditorSetter } = useAIAssistant();
 
@@ -406,6 +405,7 @@ export default function StudyClient({
   }, []);
 
   useEffect(() => {
+    if (!effectiveWeekData) return;
     localStorage.setItem(`varsiti-last-week-${userId}`, String(weekId));
 
     try {
@@ -416,13 +416,12 @@ export default function StudyClient({
     } catch {
       localStorage.setItem(`varsiti-completed-weeks-${userId}`, JSON.stringify([weekId]));
     }
-  }, [weekId, userId]);
+  }, [weekId, userId, effectiveWeekData]);
 
-  const fallbackWeekData = course[1] as CourseWeek;
-  const weekData = effectiveWeekData || fallbackWeekData;
-  const isExamWeek = weekData.type === "exam";
-  const studyWeek = isExamWeek ? null : (weekData as StudyWeekData);
-  const examWeek = isExamWeek ? (weekData as ExamWeekData) : null;
+  const weekData = effectiveWeekData;
+  const isExamWeek = weekData?.type === "exam";
+  const studyWeek = isExamWeek ? null : (weekData as StudyWeekData | undefined);
+  const examWeek = isExamWeek ? (weekData as ExamWeekData | undefined) : null;
 
   const [activeTab, setActiveTab] = useState<StudyTab | ExamTab>(isExamWeek ? "rules" : "theory");
   const [theoryIndex, setTheoryIndex] = useState(0);
@@ -736,7 +735,7 @@ export default function StudyClient({
             <span className="mb-0.5 block text-xs font-bold uppercase tracking-widest text-primary">
               Week {weekId}
             </span>
-            <h1 className="text-xl font-extrabold tracking-tight leading-tight">{weekData.title}</h1>
+            <h1 className="text-xl font-extrabold tracking-tight leading-tight">{weekData?.title || "Unknown"}</h1>
           </div>
         </div>
 

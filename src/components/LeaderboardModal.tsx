@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect } from "react";
 import { X, Trophy, Globe, GraduationCap, MapPin, Medal } from "lucide-react";
 
 // ─── Placeholder Data ──────────────────────────────────────────────────────────
@@ -60,27 +59,30 @@ function getRankColor(rank: number) {
 export default function LeaderboardModal({ onClose }: { onClose: () => void }) {
 	const [activeTab, setActiveTab] = useState<Tab>("university");
 	const entries = LEADERBOARD_DATA[activeTab];
+	const [isVisible, setIsVisible] = useState(false);
+	
+	useEffect(() => {
+		setIsVisible(true);
+	}, []);
+
+	const handleClose = () => {
+		setIsVisible(false);
+		setTimeout(onClose, 200);
+	};
 
 	return (
-		<AnimatePresence>
+		<>
 			{/* Backdrop */}
-			<motion.div
+			<div
 				key="leaderboard-backdrop"
-				initial={{ opacity: 0 }}
-				animate={{ opacity: 1 }}
-				exit={{ opacity: 0 }}
-				onClick={onClose}
-				className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+				onClick={handleClose}
+				className={`fixed inset-0 z-50 bg-black/50 backdrop-blur-sm transition-opacity duration-200 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
 			/>
 
 			{/* Modal panel */}
-			<motion.div
+			<div
 				key="leaderboard-panel"
-				initial={{ opacity: 0, y: 20, scale: 0.96 }}
-				animate={{ opacity: 1, y: 0, scale: 1 }}
-				exit={{ opacity: 0, y: 16, scale: 0.97 }}
-				transition={{ type: "spring", stiffness: 320, damping: 28 }}
-				className="fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-border bg-card shadow-2xl overflow-hidden"
+				className={`fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-border bg-card shadow-2xl overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95 translate-y-4'}`}
 				onClick={(e) => e.stopPropagation()}
 			>
 				{/* Header */}
@@ -96,7 +98,7 @@ export default function LeaderboardModal({ onClose }: { onClose: () => void }) {
 					</div>
 					<button
 						id="leaderboard-close-btn"
-						onClick={onClose}
+						onClick={handleClose}
 						className="flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
 					>
 						<X size={16} />
@@ -124,14 +126,9 @@ export default function LeaderboardModal({ onClose }: { onClose: () => void }) {
 
 				{/* Entries */}
 				<div className="max-h-[420px] overflow-y-auto p-4 space-y-2">
-					<AnimatePresence mode="wait">
-						<motion.div
+						<div
 							key={activeTab}
-							initial={{ opacity: 0, y: 8 }}
-							animate={{ opacity: 1, y: 0 }}
-							exit={{ opacity: 0, y: -8 }}
-							transition={{ duration: 0.18 }}
-							className="space-y-2"
+							className="space-y-2 animate-fade-in-up"
 						>
 							{entries.map((entry, i) => {
 								const rankColor = getRankColor(entry.rank);
@@ -177,8 +174,7 @@ export default function LeaderboardModal({ onClose }: { onClose: () => void }) {
 									</div>
 								);
 							})}
-						</motion.div>
-					</AnimatePresence>
+						</div>
 				</div>
 
 				{/* Footer */}
@@ -188,7 +184,7 @@ export default function LeaderboardModal({ onClose }: { onClose: () => void }) {
 						Leaderboard resets monthly. Rankings are based on mock test scores.
 					</p>
 				</div>
-			</motion.div>
-		</AnimatePresence>
+			</div>
+		</>
 	);
 }

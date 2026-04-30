@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import {
 	Trophy,
 	ChevronDown,
@@ -26,22 +25,12 @@ const LANG_OPTIONS: LangOption[] = [
 // ─── Coming Soon Toast ─────────────────────────────────────────────────────────
 function ComingSoonToast({ visible }: { visible: boolean }) {
 	return (
-		<AnimatePresence>
-			{visible && (
-				<motion.div
-					initial={{ opacity: 0, y: 24, scale: 0.94 }}
-					animate={{ opacity: 1, y: 0, scale: 1 }}
-					exit={{ opacity: 0, y: 16, scale: 0.96 }}
-					transition={{ duration: 0.22, ease: "easeOut" }}
-					className="fixed bottom-8 left-1/2 z-[60] -translate-x-1/2 flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-3 shadow-2xl"
-				>
-					<Clock size={16} className="text-primary shrink-0" />
-					<span className="text-sm font-semibold text-foreground">
-						Coming soon to Varsiti! 🚀
-					</span>
-				</motion.div>
-			)}
-		</AnimatePresence>
+		<div className={`transition-all duration-200 ease-out fixed bottom-8 left-1/2 z-[60] -translate-x-1/2 flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-3 shadow-2xl ${visible ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-4 scale-95 pointer-events-none"}`}>
+			<Clock size={16} className="text-primary shrink-0" />
+			<span className="text-sm font-semibold text-foreground">
+				Coming soon to Varsiti! 🚀
+			</span>
+		</div>
 	);
 }
 
@@ -113,10 +102,8 @@ export default function SubNav() {
 	return (
 		<>
 			{/* SubNav bar */}
-			<motion.div
-				animate={{ y: visible ? 0 : -56 }}
-				transition={{ type: "tween", duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
-				className="sticky top-16 z-30 h-12 w-full border-b border-border/60 bg-card/80 backdrop-blur-md flex items-center px-4 gap-3"
+			<div
+				className={`sticky top-16 z-30 h-12 w-full border-b border-border/60 bg-card/80 backdrop-blur-md flex items-center px-4 gap-3 transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${visible ? "translate-y-0" : "-translate-y-14"}`}
 			>
 				{/* ── Leaderboard button ── */}
 				<button
@@ -143,23 +130,14 @@ export default function SubNav() {
 							{selectedLang.icon} {selectedLang.label}
 						</span>
 						<span className="sm:hidden">{selectedLang.icon}</span>
-						<motion.div
-							animate={{ rotate: langDropOpen ? 180 : 0 }}
-							transition={{ duration: 0.18 }}
+						<div
+							className={`transition-transform duration-200 ${langDropOpen ? "rotate-180" : "rotate-0"}`}
 						>
 							<ChevronDown size={13} />
-						</motion.div>
+						</div>
 					</button>
 
-					<AnimatePresence>
-						{langDropOpen && (
-							<motion.div
-								initial={{ opacity: 0, y: -6, scale: 0.96 }}
-								animate={{ opacity: 1, y: 0, scale: 1 }}
-								exit={{ opacity: 0, y: -6, scale: 0.96 }}
-								transition={{ duration: 0.15 }}
-								className="absolute left-0 top-10 z-50 min-w-[180px] rounded-2xl border border-border bg-card shadow-xl p-1.5"
-							>
+					<div className={`transition-all duration-200 origin-top ${langDropOpen ? 'opacity-100 scale-100 pointer-events-auto visible' : 'opacity-0 scale-95 pointer-events-none invisible'} absolute left-0 top-10 z-50 min-w-[180px] rounded-2xl border border-border bg-card shadow-xl p-1.5`}>
 								{LANG_OPTIONS.map((lang) => (
 									<button
 										key={lang.id}
@@ -184,11 +162,9 @@ export default function SubNav() {
 										)}
 									</button>
 								))}
-							</motion.div>
-						)}
-					</AnimatePresence>
+					</div>
 				</div>
-			</motion.div>
+			</div>
 
 			{/* Leaderboard modal */}
 			{leaderboardOpen && (

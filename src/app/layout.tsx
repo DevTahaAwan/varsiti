@@ -4,8 +4,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/lib/ThemeContext";
 import { AIAssistantProvider } from "@/lib/AIAssistantContext";
-import CustomCursor from "@/components/CustomCursor";
-import CodeBackground from "@/components/CodeBackground";
+import ClientMounts from "@/components/ClientMounts";
 import AIAssistantMount from "@/components/AIAssistantMount";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -28,7 +27,7 @@ export const metadata: Metadata = {
 		siteName: "Varsiti",
 		images: [
 			{
-				url: "/og-image.jpg",
+				url: "/og-image.webp",
 				width: 1200,
 				height: 630,
 				alt: "Varsiti Open Graph Image",
@@ -41,7 +40,7 @@ export const metadata: Metadata = {
 		card: "summary_large_image",
 		title: "Varsiti | Master C++ with AI",
 		description: "Stop struggling with code. Start mastering it with Varsiti.",
-		images: ["/og-image.jpg"],
+		images: ["/og-image.webp"],
 	},
 	alternates: {
 		canonical: "/",
@@ -69,8 +68,7 @@ export default function RootLayout({
 				>
 					<ThemeProvider>
 						<AIAssistantProvider>
-							<CodeBackground />
-							<CustomCursor />
+							<ClientMounts />
 							<main className="flex-grow flex flex-col">
 								{children}
 							</main>
