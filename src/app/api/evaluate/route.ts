@@ -1,7 +1,8 @@
-import Groq from "groq-sdk";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimit } from "@/lib/rateLimit";
+import { auth } from "@clerk/nextjs/server";
+import { createClient } from "@supabase/supabase-js";
 
 const evaluateSchema = z.object({
   code: z.string().min(1, "Code is required.").max(50000),
@@ -97,40 +98,109 @@ export async function POST(request: Request) {
     const body = parsed.data;
     const code = body.code.trim();
 
-    const apiKey = process.env.GROQ_API_KEY;
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return NextResponse.json({ error: "Supabase configuration missing." }, { status: 500 });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    const today = new Date().toISOString().split('T')[0];
+
+    const { data: usageData, error: usageError } = await supabase
+      .from("user_ai_usage")
+      .select("request_count")
+      .eq("user_id", userId)
+      .eq("usage_date", today)
+      .single();
+
+    if (usageError && usageError.code !== "PGRST116") {
+      console.error("Supabase usage check error:", usageError);
+      return NextResponse.json({ error: "Failed to check usage limits." }, { status: 500 });
+    }
+
+    const requestCount = usageData?.request_count || 0;
+
+    if (requestCount >= 10) {
+      return NextResponse.json(
+        { error: "You have reached your free limit for today. Please come back tomorrow to keep learning!" },
+        { status: 429 }
+      );
+    }
+
+    if (usageData) {
+      await supabase
+        .from("user_ai_usage")
+        .update({ request_count: requestCount + 1 })
+        .eq("user_id", userId)
+        .eq("usage_date", today);
+    } else {
+      await supabase
+        .from("user_ai_usage")
+        .insert({ user_id: userId, usage_date: today, request_count: 1 });
+    }
+
+    const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: "GROQ_API_KEY is not set in .env.local" }, { status: 500 });
+      return NextResponse.json({ error: "OPENROUTER_API_KEY is not set in .env.local" }, { status: 500 });
     }
 
     const maxScore = typeof body.maxScore === "number" && body.maxScore > 0 ? body.maxScore : 1;
-    const groq = new Groq({ apiKey });
 
-    const completion = await groq.chat.completions.create({
-      model: "llama-3.1-8b-instant",
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a C++ expert evaluator. Always respond with raw valid JSON only. Never include markdown fences.",
-        },
-        {
-          role: "user",
-          content: buildPrompt({
-            code,
-            questionNumber: body.questionNumber,
-            weekId: body.weekId,
-            prompt: body.prompt,
-            questionTitle: body.questionTitle,
-            difficulty: body.difficulty,
-            maxScore,
-          }),
-        },
-      ],
-      temperature: 0.2,
-      max_tokens: 700,
+    const completionResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "HTTP-Referer": "https://varsiti.xyz",
+        "X-Title": "Varsiti",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        models: [
+          "google/gemini-2.0-flash-exp:free",
+          "qwen/qwen-2.5-coder-32b-instruct:free",
+          "meta-llama/llama-3-8b-instruct:free",
+          "mistralai/mistral-7b-instruct:free",
+          "google/gemini-1.5-flash:free",
+        ],
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a C++ expert evaluator. Always respond with raw valid JSON only. Never include markdown fences.",
+          },
+          {
+            role: "user",
+            content: buildPrompt({
+              code,
+              questionNumber: body.questionNumber,
+              weekId: body.weekId,
+              prompt: body.prompt,
+              questionTitle: body.questionTitle,
+              difficulty: body.difficulty,
+              maxScore,
+            }),
+          },
+        ],
+        temperature: 0.2,
+        max_tokens: 700,
+      }),
     });
 
-    const responseText = completion.choices[0]?.message?.content || "";
+    if (!completionResponse.ok) {
+      const errorText = await completionResponse.text();
+      console.error("OpenRouter API error:", errorText);
+      throw new Error(`OpenRouter API responded with status ${completionResponse.status}`);
+    }
+
+    const completion = await completionResponse.json();
+    const responseText = completion.choices?.[0]?.message?.content || "";
     const cleanJson = responseText.replace(/```json/gi, "").replace(/```/g, "").trim();
 
     try {

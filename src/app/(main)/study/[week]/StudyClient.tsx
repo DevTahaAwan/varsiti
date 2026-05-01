@@ -533,6 +533,11 @@ export default function StudyClient({
         }),
       });
 
+      if (response.status === 401) {
+        window.location.href = '/sign-in';
+        return;
+      }
+
       const data = (await response.json()) as EvalResult & { error?: string };
       setStudyEvalResult(
         data.error
@@ -634,6 +639,11 @@ export default function StudyClient({
           questionTitle: question.title,
         }),
       });
+
+      if (response.status === 401) {
+        window.location.href = '/sign-in';
+        return;
+      }
 
       const data = (await response.json()) as EvalResult & { error?: string };
       const result: EvalResult = data.error

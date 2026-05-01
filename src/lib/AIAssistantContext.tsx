@@ -77,6 +77,10 @@ export function AIAssistantProvider({ children }: { children: React.ReactNode })
       }).finally(() => clearTimeout(timeoutId));
 
       if (!res.ok) {
+        if (res.status === 401) {
+          window.location.href = '/sign-in';
+          return;
+        }
         const errData = await res.json().catch(() => ({}));
         throw new Error(errData.error || `HTTP ${res.status}`);
       }
