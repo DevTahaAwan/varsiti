@@ -102,11 +102,11 @@ export default function DashboardClient({
 							{isSignedIn ? (
 								<>
 									<Link
-										href={`/study/${lastWeekId}`}
+										href={`/study/${lastWeekId || 1}`}
 										onClick={() =>
 											window.localStorage.setItem(
 												`varsiti-last-week-${clerkUserId}`,
-												String(lastWeekId),
+												String(lastWeekId || 1),
 											)
 										}
 										className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold text-primary shadow-lg transition-transform hover:scale-105 active:scale-95"
