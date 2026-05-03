@@ -15,12 +15,12 @@ export default async function DashboardPage() {
   
   const weeks = await getCourseList();
 
-  const weeksList = weeks.map((w: any) => w.weekNumber);
+  const weeksList = weeks.map((w: any) => w.week_number);
   const courseMeta = weeks.reduce((acc: any, week: any) => {
-    acc[week.weekNumber] = {
-      type: week.type,
+    acc[week.week_number] = {
+      type: week.week_type,
       title: week.title,
-      outline: week.outline || []
+      outline: week.content?.outline || []
     };
     return acc;
   }, {});
