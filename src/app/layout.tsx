@@ -63,21 +63,13 @@ export default function RootLayout({
 				suppressHydrationWarning
 			>
 				<body
-					className={`${inter.className} min-h-screen flex flex-col`}
+					className={`${inter.className} h-full overflow-hidden`}
 					suppressHydrationWarning
 				>
 					<ThemeProvider>
 						<AIAssistantProvider>
 							<ClientMounts />
-							<main className="flex-grow flex flex-col">
-								{children}
-							</main>
-							<footer className="mt-auto py-6 text-center text-xs text-foreground/60 font-medium flex flex-col items-center gap-1">
-								<span style={{ textShadow: "0 0 12px rgba(var(--primary-rgb, 99 102 241) / 0.3)" }}>
-									Build with ❤️ by Hafiz
-								</span>
-								<span className="opacity-50">v1.4.0</span>
-							</footer>
+							{children}
 							<AIAssistantMount />
 						</AIAssistantProvider>
 					</ThemeProvider>

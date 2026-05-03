@@ -206,9 +206,20 @@ export default function DashboardClient({
 				<div
 					className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
 				>
-					{weeksList.map((weekNumber, i) => {
-						const data = courseMeta[weekNumber];
-						const isExam = data.type === "exam";
+					{weeksList.length === 0 ? (
+						<div className="col-span-full flex flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-border/60 bg-card/50 py-16 text-center">
+							<div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
+								<BookOpen size={22} className="text-primary" />
+							</div>
+							<p className="text-sm font-semibold text-muted-foreground">No modules found.</p>
+							<p className="text-xs text-muted-foreground/60">Course content is still loading or unavailable. Check back soon.</p>
+						</div>
+					) : (
+						weeksList.map((weekNumber, i) => {
+							const data = courseMeta[weekNumber];
+							// Guard: skip if Supabase data is missing for this week
+							if (!data) return null;
+							const isExam = data.type === "exam";
 
 						return (
 							<div
@@ -283,7 +294,8 @@ export default function DashboardClient({
 								</Link>
 							</div>
 						);
-					})}
+					})
+					)}
 				</div>
 			</section>
 
