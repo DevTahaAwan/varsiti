@@ -132,7 +132,11 @@ export async function POST(req: Request) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.0-flash-exp:free,qwen/qwen-2.5-coder-32b-instruct:free,meta-llama/llama-3-8b-instruct:free,mistralai/mistral-7b-instruct:free,google/gemini-1.5-flash:free",
+        models: [
+          "google/gemini-2.0-flash-exp:free",
+          "qwen/qwen-2.5-coder-32b-instruct:free",
+          "meta-llama/llama-3-8b-instruct:free",
+        ],
         messages: openRouterMessages,
         temperature: 0.7,
         max_tokens: 2048,
