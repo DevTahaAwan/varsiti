@@ -1,5 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
-import type { CourseWeek } from "@/lib/courseTypes";
+import type { CourseListItem, CourseWeek } from "@/lib/courseTypes";
+
+type CourseWeekRow = {
+  week_number: number;
+  week_type: CourseWeek["type"];
+  title: string;
+  content: {
+    outline?: string[];
+  } | null;
+};
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -13,7 +22,7 @@ export const supabaseIsr = createClient(supabaseUrl, supabaseKey, {
   },
 });
 
-export async function getCourseList() {
+export async function getCourseList(): Promise<CourseListItem[]> {
   const { data, error } = await supabaseIsr
     .from("course_weeks")
     .select("week_number, week_type, title, content")
@@ -24,7 +33,7 @@ export async function getCourseList() {
     return [];
   }
 
-  return data.map((week: any) => ({
+  return ((data ?? []) as CourseWeekRow[]).map((week) => ({
     weekNumber: week.week_number,
     type: week.week_type,
     title: week.title,
@@ -50,4 +59,21 @@ export async function getCourseWeek(weekNum: number): Promise<CourseWeek | null>
     title: data.title,
     ...data.content
   } as CourseWeek;
+}
+
+export async function getFundamentalsList(): Promise<CourseListItem[]> {
+  // Read directly from local data — no Supabase needed
+  const { fundamentalsData } = await import("@/data/fundamentalsData");
+  return fundamentalsData.map((week) => ({
+    weekNumber: week.week,
+    type: week.type,
+    title: week.title,
+    outline: week.outline,
+  }));
+}
+
+export async function getFundamentalsWeek(weekNum: number): Promise<CourseWeek | null> {
+  const { fundamentalsData } = await import("@/data/fundamentalsData");
+  const week = fundamentalsData.find((w) => w.week === weekNum);
+  return week ?? null;
 }

@@ -16,6 +16,9 @@ import {
 import Link from "next/link";
 
 import SuggestionForm from "@/components/SuggestionForm";
+import type { CourseListItem } from "@/lib/courseTypes";
+
+type CourseMetaMap = Record<number, Omit<CourseListItem, "weekNumber">>;
 
 const MOTIVATIONAL_QUOTES = [
 	{
@@ -58,11 +61,15 @@ function getInitialQuote() {
 export default function DashboardClient({ 
 	userId: clerkUserId, 
 	weeksList, 
-	courseMeta 
+	courseMeta,
+	fundamentalsList,
+	fundamentalsMeta,
 }: { 
 	userId: string;
 	weeksList: number[];
-	courseMeta: Record<number, any>;
+	courseMeta: CourseMetaMap;
+	fundamentalsList?: number[];
+	fundamentalsMeta?: CourseMetaMap;
 }) {
 	const { user } = useUser();
 	const { isSignedIn } = useAuth();
@@ -148,7 +155,7 @@ export default function DashboardClient({
 				<StatCard
 					icon={<BookOpen size={20} />}
 					label="Total Modules"
-					value={String(weeksList.length)}
+					value={String(weeksList.length + (fundamentalsList?.length ?? 0))}
 				/>
 				<StatCard
 					icon={<Clock size={20} />}
@@ -193,6 +200,103 @@ export default function DashboardClient({
 				</div>
 			</section>
 
+			{/* ─── Programming Fundamentals Modules ─── */}
+			{fundamentalsList && fundamentalsList.length > 0 && (
+				<section className="animate-fade-in-up animation-delay-250">
+					<div className="mb-6 flex items-center gap-3">
+						<div className="rounded-xl bg-blue-500/10 p-2 text-blue-500">
+							<BookOpen size={22} />
+						</div>
+						<h2 className="text-2xl font-extrabold tracking-tight">
+							Programming Fundamentals Modules
+						</h2>
+					</div>
+
+					<div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+						{fundamentalsList.map((weekNumber, i) => {
+							const data = fundamentalsMeta?.[weekNumber];
+							if (!data) return null;
+							const isExam = data.type === "exam";
+
+							return (
+								<div
+									key={weekNumber}
+									className="animate-fade-in-up"
+									style={{ animationDelay: `${250 + i * 50}ms` }}
+								>
+									<Link
+										href={`/fundamentals/${weekNumber}`}
+										onClick={() =>
+											window.localStorage.setItem(
+												`varsiti-last-week-${clerkUserId}`,
+												String(weekNumber),
+											)
+										}
+										className="group relative block h-full"
+									>
+										<div
+											className={`absolute inset-0 rounded-3xl blur-xl opacity-0 scale-95 transition-all duration-500 group-hover:opacity-20 group-hover:scale-100 ${
+												isExam
+													? "bg-gradient-to-b from-amber-400 to-amber-600"
+													: "bg-gradient-to-b from-blue-500 to-blue-400"
+											}`}
+										/>
+										<div className="relative flex h-full flex-col rounded-3xl border border-border/60 bg-card p-6 shadow-sm transition-colors duration-300 hover:-translate-y-1 hover:border-blue-500/40 hover:shadow-lg">
+											<div className="mb-5 flex items-start justify-between">
+												<span
+													className={`inline-flex h-11 w-11 items-center justify-center rounded-2xl text-base font-black ${
+														isExam
+															? "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400"
+															: "bg-blue-500/10 text-blue-500"
+													}`}
+												>
+													W{weekNumber}
+												</span>
+												{isExam && (
+													<span className="rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+														Exam
+													</span>
+												)}
+											</div>
+											<h3 className="mb-2 text-lg font-bold leading-tight transition-colors group-hover:text-blue-500">
+												{data.title}
+											</h3>
+											<p className="mb-5 flex-1 line-clamp-2 text-xs text-muted-foreground">
+												{data.outline?.[0]}
+											</p>
+											<div className="flex flex-wrap items-center gap-1.5">
+												{!isExam ? (
+													<>
+														<Tag>Theory</Tag>
+														<Tag>Practice</Tag>
+														<Tag>Quiz</Tag>
+													</>
+												) : (
+													<>
+														<Tag active>Rules</Tag>
+														<Tag
+															active
+															className="bg-amber-600 text-white"
+														>
+															Mock Test
+														</Tag>
+													</>
+												)}
+												<ArrowRight
+													size={14}
+													className="ml-auto text-muted-foreground transition-all group-hover:translate-x-1 group-hover:text-blue-500"
+												/>
+											</div>
+										</div>
+									</Link>
+								</div>
+							);
+						})}
+					</div>
+				</section>
+			)}
+
+			{/* ─── OOP Course Modules ─── */}
 			<section>
 				<div className="mb-6 flex items-center gap-3 animate-fade-in-up animation-delay-300">
 					<div className="rounded-xl bg-primary/10 p-2 text-primary">

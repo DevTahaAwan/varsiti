@@ -87,3 +87,10 @@ export type ExamWeekData = {
 };
 
 export type CourseWeek = StudyWeekData | ExamWeekData;
+
+export type CourseListItem = {
+  weekNumber: number;
+  type: CourseWeek["type"];
+  title: string;
+  outline: string[];
+};

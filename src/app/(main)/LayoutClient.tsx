@@ -5,13 +5,16 @@ import TopNav from "@/components/TopNav";
 import SubNav from "@/components/SubNav";
 import Sidebar from "@/components/Sidebar";
 import MainFooter from "@/components/MainFooter";
+import type { CourseListItem } from "@/lib/courseTypes";
 
 export default function LayoutClient({
 	children,
 	courseList,
+	fundamentalsList,
 }: {
 	children: React.ReactNode;
-	courseList: any[];
+	courseList: CourseListItem[];
+	fundamentalsList: CourseListItem[];
 }) {
 	const [sidebarOpen, setSidebarOpen] = useState(false);
 	const SIDEBAR_WIDTH = 288; // matches Sidebar w-72
@@ -30,7 +33,7 @@ export default function LayoutClient({
 				className="overflow-hidden shrink-0 transition-all duration-300 ease-in-out"
 				style={{ width: sidebarOpen ? SIDEBAR_WIDTH : 0 }}
 			>
-				<Sidebar closeSidebar={() => setSidebarOpen(false)} courseList={courseList} />
+				<Sidebar closeSidebar={() => setSidebarOpen(false)} courseList={courseList} fundamentalsList={fundamentalsList} />
 			</div>
 
 			<div className="flex flex-col flex-1 min-w-0 overflow-hidden transition-all duration-300">

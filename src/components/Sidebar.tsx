@@ -13,12 +13,12 @@ import {
 	CheckCircle2,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
-import type { CourseWeek } from "@/lib/courseTypes";
+import type { CourseListItem } from "@/lib/courseTypes";
 
 const NAV_SECTIONS = [
 	{
 		id: "fundamentals",
-		label: "C++ Fundamentals",
+		label: "Programming Fundamentals",
 		icon: <Cpu size={15} />,
 		color: "text-blue-500",
 		weeks: [] as number[],
@@ -45,13 +45,16 @@ const NAV_SECTIONS = [
 export default function Sidebar({
 	closeSidebar,
 	courseList,
+	fundamentalsList,
 }: {
 	closeSidebar: () => void;
-	courseList: any[];
+	courseList: CourseListItem[];
+	fundamentalsList?: CourseListItem[];
 }) {
 	const pathname = usePathname();
 	const [openSections, setOpenSections] = useState<Record<string, boolean>>({
 		oop: true,
+		fundamentals: true,
 	});
 	const [completedWeeks, setCompletedWeeks] = useState<number[]>([]);
 
@@ -72,8 +75,12 @@ export default function Sidebar({
 	}, []);
 
 	const oopWeeks = courseList.map(c => c.weekNumber);
-	const totalTopics = oopWeeks.length;
-	const completedTopics = oopWeeks.filter((w) =>
+	const fundamentalsWeeks = fundamentalsList ? fundamentalsList.map(c => c.weekNumber) : [];
+	
+	// Consider topics completed across both courses for the progress bar, or just keep it simple.
+	// For now, let's keep it based on all topics.
+	const totalTopics = oopWeeks.length + fundamentalsWeeks.length;
+	const completedTopics = [...oopWeeks, ...fundamentalsWeeks].filter((w) =>
 		completedWeeks.includes(w),
 	).length;
 	const completionPercent =
@@ -81,6 +88,17 @@ export default function Sidebar({
 
 	const toggle = (id: string) =>
 		setOpenSections((prev) => ({ ...prev, [id]: !prev[id] }));
+
+	// Update the sections with actual data
+	const activeSections = NAV_SECTIONS.map(section => {
+		if (section.id === "fundamentals") {
+			return { ...section, isPlaceholder: false, weeks: fundamentalsWeeks };
+		}
+		if (section.id === "oop") {
+			return { ...section, weeks: oopWeeks };
+		}
+		return section;
+	});
 
 	return (
 		// Fixed width — the parent div controls actual visible width via CSS transition
@@ -108,7 +126,7 @@ export default function Sidebar({
 			</div>
 
 			<div className="flex-1 overflow-y-auto py-3 px-3 space-y-0.5">
-				{NAV_SECTIONS.map((section) => (
+				{activeSections.map((section) => (
 					<div key={section.id}>
 						<button
 							onClick={() => toggle(section.id)}
@@ -147,16 +165,19 @@ export default function Sidebar({
 											Coming soon!
 										</p>
 									) : (
-										(section.id === "oop" ? oopWeeks : section.weeks).map((w) => {
-											const weekData = courseList.find(c => c.weekNumber === w);
-											const isActive =
-												pathname === `/study/${w}`;
-											const isCompleted =
-												completedWeeks.includes(w);
+										section.weeks.map((w) => {
+											const listToSearch = section.id === "oop" ? courseList : fundamentalsList;
+											const weekData = listToSearch?.find(c => c.weekNumber === w);
+											if (!weekData) return null;
+											
+											const routePrefix = section.id === "oop" ? "study" : section.id;
+											const isActive = pathname === `/${routePrefix}/${w}`;
+											const isCompleted = completedWeeks.includes(w);
+											
 											return (
 												<Link
 													key={w}
-													href={`/study/${w}`}
+													href={`/${routePrefix}/${w}`}
 													onClick={() =>
 														window.innerWidth <
 															1024 &&
