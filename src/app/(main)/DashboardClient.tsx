@@ -250,7 +250,7 @@ export default function DashboardClient({
 															: "bg-blue-500/10 text-blue-500"
 													}`}
 												>
-													W{weekNumber}
+													H{weekNumber}
 												</span>
 												{isExam && (
 													<span className="rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
@@ -357,7 +357,7 @@ export default function DashboardClient({
 														: "bg-primary/10 text-primary"
 												}`}
 											>
-												W{weekNumber}
+												H{weekNumber}
 											</span>
 											{isExam && (
 												<span className="rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">

@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useCallback, useEffect, useState, useRef } from "react";
+import { use, useCallback, useEffect, useState, useRef, useMemo } from "react";
 import { saveProgress } from "@/app/actions/progress";
 import { AnimatePresence, motion } from "framer-motion";
 import Editor, { type BeforeMount, type OnMount } from "@monaco-editor/react";
@@ -440,6 +440,8 @@ export default function StudyClient({
   // Timer State
   const [globalElapsedSeconds, setGlobalElapsedSeconds] = useState(initialElapsedSeconds);
   const elapsedRef = useRef(globalElapsedSeconds);
+  const practiceEditorRef = useRef<any>(null);
+  const codingEditorRef = useRef<any>(null);
   
   useEffect(() => {
     elapsedRef.current = globalElapsedSeconds;
@@ -460,6 +462,9 @@ export default function StudyClient({
 
     registerEditorSetter(
       (code: string) => {
+        if (practiceEditorRef.current) {
+          practiceEditorRef.current.setValue(code);
+        }
         setStudyUserCode(code);
         setActiveTab("practice");
       },
@@ -507,14 +512,20 @@ export default function StudyClient({
   const goToPractice = (nextIndex: number) => {
     const safeIndex = Math.max(0, Math.min(nextIndex, practices.length - 1));
     setPracticeIndex(safeIndex);
-    setStudyUserCode(getPracticeStarter(practices[safeIndex]));
+    const starter = getPracticeStarter(practices[safeIndex]);
+    setStudyUserCode(starter);
+    if (practiceEditorRef.current) {
+      practiceEditorRef.current.setValue(starter);
+    }
     setStudyEvalResult(null);
     setStudyTerminalVisible(false);
   };
 
   const handleRunStudyCode = async () => {
-    if (!studyUserCode.trim()) return;
+    const currentCode = practiceEditorRef.current?.getValue() || studyUserCode;
+    if (!currentCode.trim()) return;
 
+    setStudyUserCode(currentCode);
     setStudyTerminalVisible(true);
     setIsStudyEvaluating(true);
     setStudyEvalResult(null);
@@ -524,7 +535,7 @@ export default function StudyClient({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          code: studyUserCode,
+          code: currentCode,
           questionNumber: practiceIndex + 1,
           weekId,
           prompt: currentPractice?.prompt,
@@ -620,8 +631,10 @@ export default function StudyClient({
   const handleEvaluateCoding = async (question: CodingQuestion) => {
     if (!examState || examState.sectionStatus.coding !== "active") return;
 
-    const code = examState.codingAnswers[question.id];
-    if (!code?.trim()) return;
+    const currentCode = codingEditorRef.current?.getValue() || DEFAULT_STARTER;
+    handleCodingChange(question.id, currentCode);
+
+    if (!currentCode.trim()) return;
 
     setEvaluatingCodingId(question.id);
 
@@ -630,7 +643,7 @@ export default function StudyClient({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          code,
+          code: currentCode,
           questionNumber: activeCodingIndex + 1,
           weekId,
           prompt: question.prompt,
@@ -734,6 +747,88 @@ export default function StudyClient({
         { id: "quiz", label: "Quiz", icon: <FileQuestion size={16} /> },
       ];
 
+  const practiceEditorMemo = useMemo(() => (
+    <Editor
+      key={`practice-${practiceIndex}`}
+      height="100%"
+      defaultLanguage="cpp"
+      theme="varsiti-dark"
+      defaultValue={studyUserCode}
+      beforeMount={handleBeforeMount}
+      onMount={(editor) => {
+        practiceEditorRef.current = editor;
+        editor.focus();
+      }}
+      options={{
+        minimap: { enabled: false },
+        fontSize: 14,
+        fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+        fontLigatures: true,
+        lineHeight: 22,
+        padding: { top: 16, bottom: 16 },
+        smoothScrolling: true,
+        cursorBlinking: "smooth",
+        cursorSmoothCaretAnimation: "on",
+        mouseWheelZoom: true,
+        quickSuggestions: { other: true, comments: false, strings: false },
+        suggestOnTriggerCharacters: true,
+        acceptSuggestionOnEnter: "on",
+        parameterHints: { enabled: true, cycle: true },
+        wordBasedSuggestions: "matchingDocuments",
+        bracketPairColorization: { enabled: true },
+        guides: { bracketPairs: true },
+        autoClosingBrackets: "always",
+        autoClosingQuotes: "always",
+        autoSurround: "languageDefined",
+        formatOnPaste: true,
+        renderLineHighlight: "gutter",
+        scrollBeyondLastLine: false,
+        folding: true,
+        foldingHighlight: true,
+        showFoldingControls: "always",
+        scrollbar: {
+          vertical: "auto",
+          horizontal: "auto",
+          verticalScrollbarSize: 6,
+          horizontalScrollbarSize: 6,
+        },
+        tabSize: 4,
+        insertSpaces: true,
+        detectIndentation: true,
+      }}
+    />
+  ), [practiceIndex, studyUserCode, handleBeforeMount]);
+
+  const codingEditorMemo = useMemo(() => {
+    if (!currentCodingQuestion) return null;
+    return (
+      <Editor
+        key={`coding-${currentCodingQuestion.id}`}
+        height="420px"
+        defaultLanguage="cpp"
+        theme="varsiti-dark"
+        defaultValue={examState?.codingAnswers[currentCodingQuestion.id] || DEFAULT_STARTER}
+        beforeMount={handleBeforeMount}
+        onMount={(editor) => {
+          codingEditorRef.current = editor;
+          if (examState?.sectionStatus.coding === "active") {
+            editor.focus();
+          }
+        }}
+        options={{
+          readOnly: examState?.sectionStatus.coding !== "active",
+          minimap: { enabled: false },
+          fontSize: 14,
+          fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+          fontLigatures: true,
+          scrollBeyondLastLine: false,
+          padding: { top: 16, bottom: 16 },
+          lineNumbers: "on",
+        }}
+      />
+    );
+  }, [currentCodingQuestion?.id, examState?.sectionStatus.coding, handleBeforeMount]);
+
   return (
     <div className="flex flex-col">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -743,7 +838,7 @@ export default function StudyClient({
           </Link>
           <div>
             <span className="mb-0.5 block text-xs font-bold uppercase tracking-widest text-primary">
-              Week {weekId}
+              Hurdle {weekId}
             </span>
             <h1 className="text-xl font-extrabold tracking-tight leading-tight">{weekData?.title || "Unknown"}</h1>
           </div>
@@ -998,52 +1093,7 @@ export default function StudyClient({
                 </div>
 
                 <div className="min-h-0 flex-1 bg-[#1e1e1e]">
-                  <Editor
-                    height="100%"
-                    defaultLanguage="cpp"
-                    theme="varsiti-dark"
-                    value={studyUserCode}
-                    onChange={(value) => setStudyUserCode(value || "")}
-                    beforeMount={handleBeforeMount}
-                    onMount={handleEditorMount}
-                    options={{
-                      minimap: { enabled: false },
-                      fontSize: 14,
-                      fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-                      fontLigatures: true,
-                      lineHeight: 22,
-                      padding: { top: 16, bottom: 16 },
-                      smoothScrolling: true,
-                      cursorBlinking: "smooth",
-                      cursorSmoothCaretAnimation: "on",
-                      mouseWheelZoom: true,
-                      quickSuggestions: { other: true, comments: false, strings: false },
-                      suggestOnTriggerCharacters: true,
-                      acceptSuggestionOnEnter: "on",
-                      parameterHints: { enabled: true, cycle: true },
-                      wordBasedSuggestions: "matchingDocuments",
-                      bracketPairColorization: { enabled: true },
-                      guides: { bracketPairs: true },
-                      autoClosingBrackets: "always",
-                      autoClosingQuotes: "always",
-                      autoSurround: "languageDefined",
-                      formatOnPaste: true,
-                      renderLineHighlight: "gutter",
-                      scrollBeyondLastLine: false,
-                      folding: true,
-                      foldingHighlight: true,
-                      showFoldingControls: "always",
-                      scrollbar: {
-                        vertical: "auto",
-                        horizontal: "auto",
-                        verticalScrollbarSize: 6,
-                        horizontalScrollbarSize: 6,
-                      },
-                      tabSize: 4,
-                      insertSpaces: true,
-                      detectIndentation: true,
-                    }}
-                  />
+                  {practiceEditorMemo}
                 </div>
 
                 {studyTerminalVisible && (
@@ -1554,7 +1604,12 @@ export default function StudyClient({
                           return (
                             <button
                               key={question.id}
-                              onClick={() => setActiveCodingIndex(index)}
+                              onClick={() => {
+                                if (codingEditorRef.current && currentCodingQuestion) {
+                                  handleCodingChange(currentCodingQuestion.id, codingEditorRef.current.getValue());
+                                }
+                                setActiveCodingIndex(index);
+                              }}
                               className={`rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
                                 activeCodingIndex === index
                                   ? "border-primary bg-primary text-primary-foreground"
@@ -1616,27 +1671,7 @@ export default function StudyClient({
                                 {evaluatingCodingId === currentCodingQuestion.id ? "Scoring..." : "Evaluate Code"}
                               </button>
                             </div>
-                            <Editor
-                              height="420px"
-                              defaultLanguage="cpp"
-                              theme="varsiti-dark"
-                              value={examState.codingAnswers[currentCodingQuestion.id]}
-                              onChange={(value) =>
-                                handleCodingChange(currentCodingQuestion.id, value || DEFAULT_STARTER)
-                              }
-                              beforeMount={handleBeforeMount}
-                              onMount={handleEditorMount}
-                              options={{
-                                readOnly: examState.sectionStatus.coding !== "active",
-                                minimap: { enabled: false },
-                                fontSize: 14,
-                                fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-                                fontLigatures: true,
-                                scrollBeyondLastLine: false,
-                                padding: { top: 16, bottom: 16 },
-                                lineNumbers: "on",
-                              }}
-                            />
+                            {codingEditorMemo}
                           </div>
 
                           {examState.codingResults[currentCodingQuestion.id] && (

@@ -154,12 +154,59 @@ export default function AIAssistant() {
 	const [input, setInput] = useState("");
 	const bottomRef = useRef<HTMLDivElement>(null);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
+	const chatRef = useRef<HTMLDivElement>(null);
 	const isExpandedComposer = messages.length > 0;
 	const hasConversation = isExpandedComposer || input.trim().length > 0;
+
+	const [requestCount, setRequestCount] = useState<number | null>(null);
+	const [showWelcome, setShowWelcome] = useState(true);
+
+	useEffect(() => {
+		if (userId) {
+			const fetchUsage = async () => {
+				try {
+					const res = await fetch("/api/usage");
+					if (res.ok) {
+						const data = await res.json();
+						setRequestCount(data.request_count);
+					}
+				} catch (err) {
+					console.error("Failed to fetch usage:", err);
+				}
+			};
+			fetchUsage();
+		}
+	}, [userId]);
+
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			setShowWelcome(false);
+		}, 10000);
+		return () => clearTimeout(timer);
+	}, []);
 
 	useEffect(() => {
 		bottomRef.current?.scrollIntoView({ behavior: "smooth" });
 	}, [messages, isLoading]);
+
+	useEffect(() => {
+		function handleClickOutside(event: MouseEvent) {
+			if (
+				chatRef.current &&
+				!chatRef.current.contains(event.target as Node)
+			) {
+				const btn = document.getElementById("ai-assistant-btn");
+				if (btn && btn.contains(event.target as Node)) return;
+				closeChat();
+			}
+		}
+		if (isOpen) {
+			document.addEventListener("mousedown", handleClickOutside);
+		}
+		return () => {
+			document.removeEventListener("mousedown", handleClickOutside);
+		};
+	}, [isOpen, closeChat]);
 
 	useEffect(() => {
 		const el = textareaRef.current;
@@ -177,11 +224,37 @@ export default function AIAssistant() {
 		const msg = input.trim();
 		if (!msg || isLoading) return;
 		setInput("");
+		if (requestCount !== null) {
+			setRequestCount((c) => (c !== null ? c + 1 : c));
+		}
 		sendMessage(msg);
 	};
 
 	return (
 		<>
+			{/* Welcome Popup */}
+			<AnimatePresence>
+				{!isOpen && showWelcome && (
+					<motion.div
+						initial={{ opacity: 0, y: 10, scale: 0.95 }}
+						animate={{ opacity: 1, y: 0, scale: 1 }}
+						exit={{ opacity: 0, scale: 0.95 }}
+						className="fixed bottom-[90px] right-6 z-50 w-64 bg-card border border-border rounded-2xl p-4 shadow-2xl origin-bottom-right"
+					>
+						<button
+							onClick={() => setShowWelcome(false)}
+							className="absolute top-2.5 right-2.5 text-muted-foreground hover:text-foreground p-1"
+						>
+							<X size={14} />
+						</button>
+						<p className="text-sm leading-relaxed pr-3 font-medium">
+							Hi, I'm Varsiti AI, your coding companion. Feel free to ask any question to improve learning!
+						</p>
+						<div className="absolute -bottom-2 right-6 w-4 h-4 bg-card border-b border-r border-border transform rotate-45" />
+					</motion.div>
+				)}
+			</AnimatePresence>
+
 			{/* Floating trigger button */}
 			<AnimatePresence>
 				{!isOpen && (
@@ -207,6 +280,7 @@ export default function AIAssistant() {
 			<AnimatePresence>
 				{isOpen && (
 					<motion.div
+						ref={chatRef}
 						initial={{ opacity: 0, y: 40, scale: 0.95 }}
 						animate={{ opacity: 1, y: 0, scale: 1 }}
 						exit={{ opacity: 0, y: 40, scale: 0.95 }}
@@ -301,6 +375,13 @@ export default function AIAssistant() {
 						<div
 							className={`p-4 border-t border-border shrink-0 ${isExpandedComposer ? "bg-card/80 backdrop-blur-sm" : ""}`}
 						>
+							{typeof requestCount === 'number' && (
+								<div className="mb-3 flex justify-center">
+									<span className="bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full">
+										Remaining AI uses today: {Math.max(0, 10 - requestCount)}
+									</span>
+								</div>
+							)}
 							<div
 								className={`flex gap-2.5 items-end bg-secondary rounded-2xl px-4 border border-border focus-within:border-primary transition-colors ${isExpandedComposer ? "py-4" : "py-3"}`}
 							>

@@ -4,7 +4,7 @@ import { useAuth, SignInButton, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { Palette } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTheme, THEMES } from "@/lib/ThemeContext";
 import { Playfair_Display } from "next/font/google";
 
@@ -46,6 +46,27 @@ export default function TopNav({
 	const { themeId, setTheme, currentTheme } = useTheme();
 	const { isSignedIn } = useAuth();
 	const [themePickerOpen, setThemePickerOpen] = useState(false);
+	const [mounted, setMounted] = useState(false);
+	const themePickerRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => setMounted(true), []);
+
+	useEffect(() => {
+		function handleClickOutside(event: MouseEvent) {
+			if (
+				themePickerRef.current &&
+				!themePickerRef.current.contains(event.target as Node)
+			) {
+				setThemePickerOpen(false);
+			}
+		}
+		if (themePickerOpen) {
+			document.addEventListener("mousedown", handleClickOutside);
+		}
+		return () => {
+			document.removeEventListener("mousedown", handleClickOutside);
+		};
+	}, [themePickerOpen]);
 
 	const lightThemes = THEMES.filter((t) => !t.isDark);
 	const darkThemes = THEMES.filter((t) => t.isDark);
@@ -88,25 +109,23 @@ export default function TopNav({
 			{/* Right: theme picker + auth */}
 			<div className="flex items-center gap-2">
 				{/* Theme Picker */}
-				<div className="relative">
+				<div className="relative" ref={themePickerRef}>
 					<button
 						id="theme-picker-btn"
 						onClick={() => setThemePickerOpen((o) => !o)}
-						className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors text-sm font-medium"
+						className="flex flex-row items-center justify-center gap-2 px-3 py-2 rounded-xl hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors text-sm font-medium"
 					>
 						<Palette size={18} />
-						<span className="hidden sm:inline">
-							{currentTheme.emoji} {currentTheme.label}
+						<span className="hidden sm:inline w-[70px] text-left">
+							{mounted ? (
+								<>{currentTheme.emoji} {currentTheme.label}</>
+							) : (
+								<span className="opacity-0">🌿 Light</span>
+							)}
 						</span>
 					</button>
 
 					<div className={`transition-all duration-200 origin-top-right ${themePickerOpen ? 'opacity-100 scale-100 pointer-events-auto visible' : 'opacity-0 scale-95 pointer-events-none invisible'}`}>
-						{themePickerOpen && (
-							<div
-								className="fixed inset-0 z-40"
-								onClick={() => setThemePickerOpen(false)}
-							/>
-						)}
 						<div
 							className="absolute right-0 top-12 z-50 bg-card border border-border rounded-2xl shadow-2xl p-4 w-72"
 						>
@@ -121,7 +140,7 @@ export default function TopNav({
 													setTheme(theme.id);
 													setThemePickerOpen(false);
 												}}
-												className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${themeId === theme.id ? "border-primary bg-primary/10 ring-1 ring-primary" : "border-border hover:bg-secondary"}`}
+												className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${mounted && themeId === theme.id ? "border-primary bg-primary/10 ring-1 ring-primary" : "border-border hover:bg-secondary"}`}
 											>
 												<div className="flex shrink-0">
 													{theme.preview.map(
@@ -154,7 +173,7 @@ export default function TopNav({
 													setTheme(theme.id);
 													setThemePickerOpen(false);
 												}}
-												className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${themeId === theme.id ? "border-primary bg-primary/10 ring-1 ring-primary" : "border-border hover:bg-secondary"}`}
+												className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${mounted && themeId === theme.id ? "border-primary bg-primary/10 ring-1 ring-primary" : "border-border hover:bg-secondary"}`}
 											>
 												<div className="flex shrink-0">
 													{theme.preview.map(

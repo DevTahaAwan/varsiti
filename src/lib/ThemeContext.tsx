@@ -12,7 +12,9 @@ export type ThemeId =
   | "dark-ocean"     // dark: dark blue + grey
   | "dark-violet"    // dark: dark purple + lavender
   | "vintage-grey"   // dark: warm sage + brown
-  | "jet-black";     // dark: pure black + silver
+  | "jet-black"      // dark: pure black + silver
+  | "hc-light"       // light: high contrast
+  | "hc-dark";       // dark: high contrast
 
 export interface ThemeConfig {
   id: ThemeId;
@@ -262,6 +264,54 @@ export const THEMES: ThemeConfig[] = [
       "--border": "#2a2a2a",
       "--input": "#1a1a1a",
       "--ring": "#9999A1",
+    }
+  },
+  {
+    id: "hc-light",
+    label: "HC Light",
+    isDark: false,
+    emoji: "☀️",
+    preview: ["#ffffff", "#000000", "#000000"],
+    vars: {
+      "--background": "#ffffff",
+      "--foreground": "#000000",
+      "--card": "#ffffff",
+      "--card-foreground": "#000000",
+      "--primary": "#000000",
+      "--primary-foreground": "#ffffff",
+      "--secondary": "#f0f0f0",
+      "--secondary-foreground": "#000000",
+      "--muted": "#f0f0f0",
+      "--muted-foreground": "#333333",
+      "--accent": "#000000",
+      "--accent-foreground": "#ffffff",
+      "--border": "#000000",
+      "--input": "#000000",
+      "--ring": "#000000",
+    }
+  },
+  {
+    id: "hc-dark",
+    label: "HC Dark",
+    isDark: true,
+    emoji: "🌙",
+    preview: ["#000000", "#ffffff", "#00ff00"],
+    vars: {
+      "--background": "#000000",
+      "--foreground": "#ffffff",
+      "--card": "#000000",
+      "--card-foreground": "#ffffff",
+      "--primary": "#00ff00",
+      "--primary-foreground": "#000000",
+      "--secondary": "#111111",
+      "--secondary-foreground": "#ffffff",
+      "--muted": "#111111",
+      "--muted-foreground": "#cccccc",
+      "--accent": "#00ff00",
+      "--accent-foreground": "#000000",
+      "--border": "#ffffff",
+      "--input": "#ffffff",
+      "--ring": "#00ff00",
     }
   },
 ];

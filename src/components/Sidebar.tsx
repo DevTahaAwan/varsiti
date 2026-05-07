@@ -11,6 +11,7 @@ import {
 	Code2,
 	Layers,
 	CheckCircle2,
+	X,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import type { CourseListItem } from "@/lib/courseTypes";
@@ -105,9 +106,17 @@ export default function Sidebar({
 		<div className="w-72 h-full flex flex-col bg-card/80 backdrop-blur-xl border-r border-border/70 shadow-[0_10px_30px_rgba(0,0,0,0.08)]">
 			{/* Section header */}
 			<div className="border-b border-border/70 px-5 py-4 shrink-0 space-y-2.5 bg-card/55 backdrop-blur-md">
-				<span className="block text-[11px] font-bold tracking-widest text-muted-foreground uppercase whitespace-nowrap">
-					Curriculum
-				</span>
+				<div className="flex items-center justify-between">
+					<span className="block text-[11px] font-bold tracking-widest text-muted-foreground uppercase whitespace-nowrap">
+						Curriculum
+					</span>
+					<button
+						onClick={closeSidebar}
+						className="flex p-1 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+					>
+						<X size={14} />
+					</button>
+				</div>
 				<div>
 					<div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
 						<span>Topics Completed</span>
@@ -207,7 +216,7 @@ export default function Sidebar({
 														<p
 															className={`text-xs font-bold leading-tight flex items-center gap-1.5 ${isActive ? "text-primary" : ""}`}
 														>
-															Week {w}
+															Hurdle {w}
 															{isCompleted && (
 																<CheckCircle2
 																	size={12}
