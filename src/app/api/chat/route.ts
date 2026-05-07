@@ -133,9 +133,11 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         models: [
-          "google/gemini-2.0-flash-exp:free",
+          "google/gemini-2.0-flash-lite-preview-02-05:free",
           "qwen/qwen-2.5-coder-32b-instruct:free",
           "meta-llama/llama-3-8b-instruct:free",
+          "mistralai/mistral-7b-instruct:free",
+          "google/gemini-1.5-flash:free",
         ],
         messages: openRouterMessages,
         temperature: 0.7,
