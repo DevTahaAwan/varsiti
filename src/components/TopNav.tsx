@@ -13,36 +13,7 @@ const logoFont = Playfair_Display({
 	weight: "700",
 });
 
-// Animated hamburger ↔ X icon
-function MenuIcon({ isOpen }: { isOpen: boolean }) {
-	return (
-		<div className="w-5 h-5 flex flex-col justify-center gap-[5px] relative">
-			<span
-				className={`block h-[2px] w-5 bg-current origin-center transition-all duration-250 ease-in-out ${
-					isOpen ? "rotate-45 translate-y-[7px]" : "rotate-0 translate-y-0"
-				}`}
-			/>
-			<span
-				className={`block h-[2px] w-5 bg-current transition-all duration-150 ${
-					isOpen ? "opacity-0 scale-x-0" : "opacity-100 scale-x-100"
-				}`}
-			/>
-			<span
-				className={`block h-[2px] w-5 bg-current origin-center transition-all duration-250 ease-in-out ${
-					isOpen ? "-rotate-45 -translate-y-[7px]" : "rotate-0 translate-y-0"
-				}`}
-			/>
-		</div>
-	);
-}
-
-export default function TopNav({
-	sidebarOpen,
-	toggleSidebar,
-}: {
-	sidebarOpen: boolean;
-	toggleSidebar: () => void;
-}) {
+export default function TopNav() {
 	const { themeId, setTheme, currentTheme } = useTheme();
 	const { isSignedIn } = useAuth();
 	const [themePickerOpen, setThemePickerOpen] = useState(false);
@@ -73,17 +44,8 @@ export default function TopNav({
 
 	return (
 		<nav className="h-16 border-b border-border bg-card/90 backdrop-blur-md sticky top-0 z-40 flex items-center justify-between px-4 gap-4">
-			{/* Left: hamburger + logo */}
+			{/* Left: logo */}
 			<div className="flex items-center gap-3">
-				{/* Hamburger → X toggle button */}
-				<button
-					id="sidebar-toggle"
-					onClick={toggleSidebar}
-					className="p-2.5 rounded-xl hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors shrink-0"
-					aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
-				>
-					<MenuIcon isOpen={sidebarOpen} />
-				</button>
 
 				<Link
 					href="/"

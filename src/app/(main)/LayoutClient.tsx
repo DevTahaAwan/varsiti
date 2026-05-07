@@ -31,10 +31,7 @@ export default function LayoutClient({
 
 	return (
 		<div className="flex flex-col h-screen overflow-hidden bg-background">
-			<TopNav
-				sidebarOpen={activePanel === "curriculum"}
-				toggleSidebar={() => setActivePanel((p) => (p === "curriculum" ? null : "curriculum"))}
-			/>
+			<TopNav />
 
 			<div className="flex flex-1 min-w-0 overflow-hidden transition-all duration-300 relative">
 				<ActivityBar activePanel={activePanel} setActivePanel={setActivePanel} />
