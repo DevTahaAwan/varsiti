@@ -132,8 +132,8 @@ export async function POST(req: Request) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        model: "google/gemini-2.0-flash-lite-preview-02-05:free",
         models: [
-          "google/gemini-2.0-flash-lite-preview-02-05:free",
           "qwen/qwen-2.5-coder-32b-instruct:free",
           "meta-llama/llama-3-8b-instruct:free",
           "mistralai/mistral-7b-instruct:free",
