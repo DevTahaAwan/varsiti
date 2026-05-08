@@ -171,11 +171,12 @@ export default function TopNav() {
 						{/* Auth */}
 						<div className="ml-1 pl-3 pr-1 border-l border-border flex items-center h-full">
 							{!isSignedIn ? (
-								<Link href="/sign-in">
-									<button className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:opacity-90 transition-opacity">
-										Sign In
-									</button>
-								</Link>
+
+						<SignInButton mode="modal" asChild>
+							<button className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:opacity-90 transition-opacity">
+								Sign In
+							</button>
+						</SignInButton>
 					) : (
 						<UserButton
 							appearance={{
