@@ -74,25 +74,27 @@ export default function TopNav() {
 					<button
 						id="theme-picker-btn"
 						onClick={() => setThemePickerOpen((o) => !o)}
-						className="flex flex-row items-center justify-center gap-2 px-3 py-2 rounded-xl hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors text-sm font-medium"
+						className="h-full flex flex-row items-center justify-center gap-2 px-3 py-2 rounded-xl hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors text-sm font-medium"
 					>
-						<Palette size={18} />
-						<span className="hidden sm:inline w-[70px] text-left">
+						<Palette size={18} className="shrink-0" />
+						<span className="hidden sm:inline w-[70px] text-left leading-none">
 							{mounted ? (
 								<span className="inline-flex items-center gap-1 leading-none">
-									<span className="inline-flex items-center leading-none align-middle">
+									<span className="inline-flex items-center leading-none">
 										{currentTheme.emoji}
 									</span>
-									<span className="leading-none">
+									<span className="inline-flex items-center leading-none">
 										{currentTheme.label}
 									</span>
 								</span>
 							) : (
 								<span className="opacity-0 inline-flex items-center gap-1 leading-none">
-									<span className="inline-flex items-center leading-none align-middle">
+									<span className="inline-flex items-center leading-none">
 										🌿
 									</span>
-									<span className="leading-none">Light</span>
+									<span className="inline-flex items-center leading-none">
+										Light
+									</span>
 								</span>
 							)}
 						</span>
@@ -166,9 +168,10 @@ export default function TopNav() {
 					</div>
 				</div>
 
-				{/* Auth */}
-				<div className="pl-2 border-l border-border flex items-center">
-					{!isSignedIn ? (
+						{/* Auth */}
+						<div className="ml-1 pl-3 pr-1 border-l border-border flex items-center h-full">
+							{!isSignedIn ? (
+
 						<SignInButton mode="modal">
 							<button className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:opacity-90 transition-opacity">
 								Sign In
