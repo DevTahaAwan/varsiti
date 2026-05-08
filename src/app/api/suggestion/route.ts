@@ -1,54 +1,57 @@
+import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { validateSuggestionPayload } from "@/lib/suggestionValidation";
-import { rateLimit } from "@/lib/rateLimit";
+import { suggestionSchema } from "@/lib/suggestionValidation";
+import { checkRateLimit, getClientIp, isLikelyAutomatedRequest, rateLimitResponse } from "@/lib/rateLimit";
+import { parseJsonRequest } from "@/lib/requestValidation";
+import { getEmailJsEnv, ServerConfigurationError } from "@/lib/serverEnv";
+import { logApiError, logSecurityEvent } from "@/lib/securityLogger";
 
 export const runtime = "nodejs";
 
 const EMAILJS_ENDPOINT = "https://api.emailjs.com/api/v1.0/email/send";
 
 export async function POST(request: Request) {
+  const ip = getClientIp(request);
+
   try {
-    // Basic rate limit by IP (fallback to global if not available)
-    const ip = request.headers.get("x-forwarded-for") || "unknown-ip";
-    const rateLimitResult = rateLimit(`suggestion_${ip}`, 3, 60000); // 3 requests per minute
-
-    if (!rateLimitResult.success) {
-      return NextResponse.json(
-        { error: "Too many requests. Please try again later." },
-        { status: 429 }
-      );
+    const ipLimit = checkRateLimit("api:suggestion:ip", [ip], 10, 60000);
+    if (!ipLimit.success) {
+      logSecurityEvent("suggestion_rate_limited_ip", request, { ip }, "warn");
+      return rateLimitResponse("Too many requests. Please try again later.", ipLimit);
     }
 
-    const rawBody = await request.json();
-    const validation = validateSuggestionPayload(rawBody);
-
-    if (!validation.success) {
-      return NextResponse.json(
-        {
-          error: "Please review the form and try again.",
-          fieldErrors: validation.error.flatten().fieldErrors,
-        },
-        { status: 400 },
-      );
+    if (isLikelyAutomatedRequest(request)) {
+      const automationLimit = checkRateLimit("api:suggestion:automated", [ip], 3, 60000);
+      if (!automationLimit.success) {
+        logSecurityEvent("suggestion_automated_rate_limited", request, { ip }, "warn");
+        return rateLimitResponse("Too many automated requests.", automationLimit);
+      }
     }
 
-    const serviceId = process.env.EMAILJS_SERVICE_ID;
-    const templateId = process.env.EMAILJS_TEMPLATE_ID;
-    const publicKey = process.env.EMAILJS_PUBLIC_KEY;
-    const privateKey = process.env.EMAILJS_PRIVATE_KEY;
-
-    if (!serviceId || !templateId || !publicKey || !privateKey) {
-      return NextResponse.json(
-        { error: "Email service is not configured on the server yet." },
-        { status: 500 },
-      );
+    const { userId } = await auth();
+    if (!userId) {
+      logSecurityEvent("suggestion_unauthorized", request, { ip }, "warn");
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const userLimit = checkRateLimit("api:suggestion:user", [userId], 5, 60000);
+    if (!userLimit.success) {
+      logSecurityEvent("suggestion_rate_limited_user", request, { userId }, "warn");
+      return rateLimitResponse("Too many requests. Please try again later.", userLimit);
+    }
+
+    const parsed = await parseJsonRequest(request, suggestionSchema, { maxBytes: 8000 });
+    if (!parsed.success) {
+      return parsed.response;
+    }
+
+    const { serviceId, templateId, publicKey, privateKey, appUrl } = getEmailJsEnv();
 
     const emailJsResponse = await fetch(EMAILJS_ENDPOINT, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Origin": "http://localhost:3000",
+        Origin: appUrl,
       },
       body: JSON.stringify({
         service_id: serviceId,
@@ -56,11 +59,12 @@ export async function POST(request: Request) {
         user_id: publicKey,
         accessToken: privateKey,
         template_params: {
-          name: validation.data!.name,
-          email: validation.data!.email,
-          message: validation.data!.message,
-          time: new Date().toLocaleString(),
+          name: parsed.data.name,
+          email: parsed.data.email,
+          message: parsed.data.message,
+          time: new Date().toISOString(),
           app_name: "Varsiti",
+          user_id: userId,
         },
       }),
       cache: "no-store",
@@ -68,18 +72,29 @@ export async function POST(request: Request) {
 
     if (!emailJsResponse.ok) {
       const details = await emailJsResponse.text();
-      console.error("EmailJS send failed:", details);
+      logSecurityEvent(
+        "emailjs_send_failed",
+        request,
+        { userId, status: emailJsResponse.status, providerMessage: details.slice(0, 500) },
+        "error",
+      );
       return NextResponse.json(
         { error: "Could not send your suggestion right now. Please try again shortly." },
         { status: 502 },
       );
     }
 
+    logSecurityEvent("suggestion_sent", request, { userId });
     return NextResponse.json({ ok: true, message: "Thanks! Your suggestion has been sent." });
   } catch (error: unknown) {
-    console.error("Suggestion API error:", error);
+    logApiError("suggestion_api_error", error, request, { ip });
     return NextResponse.json(
-      { error: "Unexpected server error while sending suggestion." },
+      {
+        error:
+          error instanceof ServerConfigurationError
+            ? "Email service is not configured on the server yet."
+            : "Unexpected server error while sending suggestion.",
+      },
       { status: 500 },
     );
   }

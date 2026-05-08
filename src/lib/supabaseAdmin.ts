@@ -1,6 +1,20 @@
-import { createClient } from "@supabase/supabase-js";
+import "server-only";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { getSupabaseAdminEnv } from "@/lib/serverEnv";
 
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+let adminClient: SupabaseClient | null = null;
+
+export function getSupabaseAdmin() {
+  if (!adminClient) {
+    const { supabaseUrl, serviceRoleKey } = getSupabaseAdminEnv();
+    adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+  }
+
+  return adminClient;
+}

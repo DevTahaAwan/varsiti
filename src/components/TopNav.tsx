@@ -46,7 +46,6 @@ export default function TopNav() {
 		<nav className="h-16 border-b border-border bg-card/90 backdrop-blur-md sticky top-0 z-40 flex items-center justify-between px-4 gap-4">
 			{/* Left: logo */}
 			<div className="flex items-center gap-3">
-
 				<Link
 					href="/"
 					className="flex flex-row items-center gap-2.5 group"
@@ -80,83 +79,89 @@ export default function TopNav() {
 						<Palette size={18} />
 						<span className="hidden sm:inline w-[70px] text-left">
 							{mounted ? (
-								<>{currentTheme.emoji} {currentTheme.label}</>
+								<span className="inline-flex items-center gap-1 leading-none">
+									<span className="inline-flex items-center leading-none align-middle">
+										{currentTheme.emoji}
+									</span>
+									<span className="leading-none">
+										{currentTheme.label}
+									</span>
+								</span>
 							) : (
-								<span className="opacity-0">🌿 Light</span>
+								<span className="opacity-0 inline-flex items-center gap-1 leading-none">
+									<span className="inline-flex items-center leading-none align-middle">
+										🌿
+									</span>
+									<span className="leading-none">Light</span>
+								</span>
 							)}
 						</span>
 					</button>
 
-					<div className={`transition-all duration-200 origin-top-right ${themePickerOpen ? 'opacity-100 scale-100 pointer-events-auto visible' : 'opacity-0 scale-95 pointer-events-none invisible'}`}>
-						<div
-							className="absolute right-0 top-12 z-50 bg-card border border-border rounded-2xl shadow-2xl p-4 w-72"
-						>
-									<p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">
-										☀️ Light Themes
-									</p>
-									<div className="grid grid-cols-2 gap-2 mb-4">
-										{lightThemes.map((theme) => (
-											<button
-												key={theme.id}
-												onClick={() => {
-													setTheme(theme.id);
-													setThemePickerOpen(false);
-												}}
-												className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${mounted && themeId === theme.id ? "border-primary bg-primary/10 ring-1 ring-primary" : "border-border hover:bg-secondary"}`}
-											>
-												<div className="flex shrink-0">
-													{theme.preview.map(
-														(c, i) => (
-															<div
-																key={i}
-																className="w-3 h-6 first:rounded-l-md last:rounded-r-md"
-																style={{
-																	backgroundColor:
-																		c,
-																}}
-															/>
-														),
-													)}
-												</div>
-												<span className="text-xs font-semibold truncate">
-													{theme.emoji} {theme.label}
-												</span>
-											</button>
-										))}
-									</div>
-									<p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">
-										🌙 Dark Themes
-									</p>
-									<div className="grid grid-cols-2 gap-2">
-										{darkThemes.map((theme) => (
-											<button
-												key={theme.id}
-												onClick={() => {
-													setTheme(theme.id);
-													setThemePickerOpen(false);
-												}}
-												className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${mounted && themeId === theme.id ? "border-primary bg-primary/10 ring-1 ring-primary" : "border-border hover:bg-secondary"}`}
-											>
-												<div className="flex shrink-0">
-													{theme.preview.map(
-														(c, i) => (
-															<div
-																key={i}
-																className="w-3 h-6 first:rounded-l-md last:rounded-r-md"
-																style={{
-																	backgroundColor:
-																		c,
-																}}
-															/>
-														),
-													)}
-												</div>
-												<span className="text-xs font-semibold truncate">
-													{theme.emoji} {theme.label}
-												</span>
-											</button>
-										))}
-									</div>
+					<div
+						className={`transition-all duration-200 origin-top-right ${themePickerOpen ? "opacity-100 scale-100 pointer-events-auto visible" : "opacity-0 scale-95 pointer-events-none invisible"}`}
+					>
+						<div className="absolute right-0 top-12 z-50 bg-card border border-border rounded-2xl shadow-2xl p-4 w-72">
+							<p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">
+								☀️ Light Themes
+							</p>
+							<div className="grid grid-cols-2 gap-2 mb-4">
+								{lightThemes.map((theme) => (
+									<button
+										key={theme.id}
+										onClick={() => {
+											setTheme(theme.id);
+											setThemePickerOpen(false);
+										}}
+										className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${mounted && themeId === theme.id ? "border-primary bg-primary/10 ring-1 ring-primary" : "border-border hover:bg-secondary"}`}
+									>
+										<div className="flex shrink-0">
+											{theme.preview.map((c, i) => (
+												<div
+													key={i}
+													className="w-3 h-6 first:rounded-l-md last:rounded-r-md"
+													style={{
+														backgroundColor: c,
+													}}
+												/>
+											))}
+										</div>
+										<span className="text-xs font-semibold truncate">
+											{theme.emoji} {theme.label}
+										</span>
+									</button>
+								))}
+							</div>
+							<p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">
+								🌙 Dark Themes
+							</p>
+							<div className="grid grid-cols-2 gap-2">
+								{darkThemes.map((theme) => (
+									<button
+										key={theme.id}
+										onClick={() => {
+											setTheme(theme.id);
+											setThemePickerOpen(false);
+										}}
+										className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${mounted && themeId === theme.id ? "border-primary bg-primary/10 ring-1 ring-primary" : "border-border hover:bg-secondary"}`}
+									>
+										<div className="flex shrink-0">
+											{theme.preview.map((c, i) => (
+												<div
+													key={i}
+													className="w-3 h-6 first:rounded-l-md last:rounded-r-md"
+													style={{
+														backgroundColor: c,
+													}}
+												/>
+											))}
+										</div>
+										<span className="text-xs font-semibold truncate">
+											{theme.emoji} {theme.label}
+										</span>
+									</button>
+								))}
+							</div>
 						</div>
 					</div>
 				</div>
@@ -260,7 +265,8 @@ export default function TopNav() {
 										fontWeight: "600",
 										fontSize: "13px",
 										padding: "10px 14px",
-										transition: "background 0.15s, color 0.15s",
+										transition:
+											"background 0.15s, color 0.15s",
 									},
 									navbarButtonIcon: {
 										color: "#4b5563 !important",

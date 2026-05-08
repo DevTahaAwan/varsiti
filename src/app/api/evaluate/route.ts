@@ -1,18 +1,27 @@
+import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { rateLimit } from "@/lib/rateLimit";
-import { auth } from "@clerk/nextjs/server";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { checkRateLimit, getClientIp, isLikelyAutomatedRequest, rateLimitResponse } from "@/lib/rateLimit";
+import { parseJsonRequest } from "@/lib/requestValidation";
+import { getOpenRouterEnv, ServerConfigurationError } from "@/lib/serverEnv";
+import { logApiError, logSecurityEvent } from "@/lib/securityLogger";
 
-const evaluateSchema = z.object({
-  code: z.string().min(1, "Code is required.").max(50000),
-  questionNumber: z.number().int().positive().optional(),
-  weekId: z.number().int().positive().optional(),
-  prompt: z.string().optional(),
-  questionTitle: z.string().optional(),
-  difficulty: z.enum(["easy", "medium", "hard"]).optional(),
-  maxScore: z.number().int().positive().optional(),
-});
+export const runtime = "nodejs";
+
+const EVALUATE_TIMEOUT_MS = 30000;
+
+const evaluateSchema = z
+  .object({
+    code: z.string().trim().min(1, "Code is required.").max(50000),
+    questionNumber: z.number().int().positive().max(500).optional(),
+    weekId: z.number().int().positive().max(52).optional(),
+    prompt: z.string().trim().max(6000).optional(),
+    questionTitle: z.string().trim().max(200).optional(),
+    difficulty: z.enum(["easy", "medium", "hard"]).optional(),
+    maxScore: z.number().int().positive().max(100).optional(),
+  })
+  .strict();
 
 type EvaluateRequest = z.infer<typeof evaluateSchema>;
 
@@ -71,113 +80,91 @@ Scoring rules:
 - Include expectedOutput only when it genuinely helps explain the result`;
 }
 
-function safeErrorMessage(error: unknown) {
-  if (error instanceof Error) return error.message;
-  return "Failed to evaluate code.";
-}
-
 export async function POST(request: Request) {
+  const ip = getClientIp(request);
+
   try {
-    const ip = request.headers.get("x-forwarded-for") || "unknown-ip";
-    const rateLimitResult = rateLimit(`evaluate_${ip}`, 10, 60000); // 10 evals per minute
-
-    if (!rateLimitResult.success) {
-      return NextResponse.json(
-        { error: "Too many evaluations requested. Please wait a moment." },
-        { status: 429 }
-      );
+    const ipLimit = checkRateLimit("api:evaluate:ip", [ip], 20, 60000);
+    if (!ipLimit.success) {
+      logSecurityEvent("evaluate_rate_limited_ip", request, { ip }, "warn");
+      return rateLimitResponse("Too many evaluations requested. Please wait a moment.", ipLimit);
     }
 
-    const rawBody = await request.json();
-    const parsed = evaluateSchema.safeParse(rawBody);
-
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid payload: " + parsed.error.issues[0].message }, { status: 400 });
+    if (isLikelyAutomatedRequest(request)) {
+      const automationLimit = checkRateLimit("api:evaluate:automated", [ip], 5, 60000);
+      if (!automationLimit.success) {
+        logSecurityEvent("evaluate_automated_rate_limited", request, { ip }, "warn");
+        return rateLimitResponse("Too many automated requests.", automationLimit);
+      }
     }
-
-    const body = parsed.data;
-    const code = body.code.trim();
 
     const { userId } = await auth();
     if (!userId) {
+      logSecurityEvent("evaluate_unauthorized", request, { ip }, "warn");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    
-    if (!supabaseUrl || !supabaseKey) {
-      return NextResponse.json({ error: "Supabase configuration missing." }, { status: 500 });
+    const userLimit = checkRateLimit("api:evaluate:user", [userId], 10, 60000);
+    if (!userLimit.success) {
+      logSecurityEvent("evaluate_rate_limited_user", request, { userId }, "warn");
+      return rateLimitResponse("Too many evaluations requested. Please wait a moment.", userLimit);
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    const today = new Date().toISOString().split('T')[0];
-
-    const { data: usageData, error: usageError } = await supabase
-      .from("user_ai_usage")
-      .select("request_count")
-      .eq("user_id", userId)
-      .eq("usage_date", today)
-      .single();
-
-    if (usageError && usageError.code !== "PGRST116") {
-      console.error("Supabase usage check error:", usageError);
-      return NextResponse.json({ error: "Failed to check usage limits." }, { status: 500 });
+    const parsed = await parseJsonRequest(request, evaluateSchema, { maxBytes: 64000 });
+    if (!parsed.success) {
+      return parsed.response;
     }
 
-    const requestCount = usageData?.request_count || 0;
+    const body = parsed.data;
+    const maxScore = typeof body.maxScore === "number" && body.maxScore > 0 ? body.maxScore : 1;
 
-    if (requestCount >= 10) {
+    // Call the atomic RPC function
+    const today = new Date().toISOString().slice(0, 10);
+
+    const supabase = getSupabaseAdmin();
+    const { data: usageData, error: usageError } = await supabase.rpc("increment_ai_usage", {
+      p_user_id: userId,
+      p_usage_date: today,
+      p_limit: 10,
+    });
+
+    if (usageError) {
+      console.error("Supabase RPC error:", usageError);
+      return NextResponse.json({ error: "Failed to verify usage limits." }, { status: 500 });
+    }
+
+    // The RPC returns an array with one object, e.g., [{ allowed: true, request_count: 5, remaining: 5 }]
+    const result = usageData?.[0];
+
+    if (!result || !result.allowed) {
       return NextResponse.json(
         { error: "You have reached your free limit for today. Please come back tomorrow to keep learning!" },
         { status: 429 }
       );
     }
 
-    if (usageData) {
-      await supabase
-        .from("user_ai_usage")
-        .update({ request_count: requestCount + 1 })
-        .eq("user_id", userId)
-        .eq("usage_date", today);
-    } else {
-      await supabase
-        .from("user_ai_usage")
-        .insert({ user_id: userId, usage_date: today, request_count: 1 });
-    }
+    const { openRouterApiKey, appUrl } = getOpenRouterEnv();
 
-    const apiKey = process.env.OPENROUTER_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: "OPENROUTER_API_KEY is not set in .env.local" }, { status: 500 });
-    }
-
-    const maxScore = typeof body.maxScore === "number" && body.maxScore > 0 ? body.maxScore : 1;
-
-    const completionResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const fetchPromise = fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "HTTP-Referer": "https://varsiti.xyz",
+        Authorization: `Bearer ${openRouterApiKey}`,
+        "HTTP-Referer": appUrl,
         "X-Title": "Varsiti",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         model: "meta-llama/llama-3.3-70b-instruct:free",
-        models: [
-          "openai/gpt-oss-120b:free",
-          "google/gemma-4-31b-it:free",
-          "qwen/qwen3-coder:free"
-        ],
+        models: ["openai/gpt-oss-120b:free", "google/gemma-4-31b-it:free", "qwen/qwen3-coder:free"],
         messages: [
           {
             role: "system",
-            content:
-              "You are a C++ expert evaluator. Always respond with raw valid JSON only. Never include markdown fences.",
+            content: "You are a C++ expert evaluator. Always respond with raw valid JSON only. Never include markdown fences.",
           },
           {
             role: "user",
             content: buildPrompt({
-              code,
+              code: body.code,
               questionNumber: body.questionNumber,
               weekId: body.weekId,
               prompt: body.prompt,
@@ -190,29 +177,45 @@ export async function POST(request: Request) {
         temperature: 0.2,
         max_tokens: 700,
       }),
+      cache: "no-store",
     });
+
+    const completionResponse = await Promise.race([
+      fetchPromise,
+      new Promise<Response>((_, reject) =>
+        setTimeout(() => reject(new Error("AI request timed out.")), EVALUATE_TIMEOUT_MS),
+      ),
+    ]);
 
     if (!completionResponse.ok) {
       const errorText = await completionResponse.text();
-      console.error("OpenRouter API error:", errorText);
-      throw new Error(`OpenRouter API responded with status ${completionResponse.status}`);
+      logSecurityEvent(
+        "openrouter_evaluate_failed",
+        request,
+        { userId, status: completionResponse.status, providerMessage: errorText.slice(0, 500) },
+        "error",
+      );
+      return NextResponse.json({ error: "AI service is unavailable right now." }, { status: 502 });
     }
 
-    const completion = await completionResponse.json();
+    const completion = (await completionResponse.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+    };
     const responseText = completion.choices?.[0]?.message?.content || "";
     const cleanJson = responseText.replace(/```json/gi, "").replace(/```/g, "").trim();
 
     try {
-      const parsed = JSON.parse(cleanJson) as EvaluateResponse;
+      const evaluated = JSON.parse(cleanJson) as EvaluateResponse;
       const safeScore =
-        typeof parsed.score === "number" ? Math.max(0, Math.min(maxScore, parsed.score)) : undefined;
+        typeof evaluated.score === "number" ? Math.max(0, Math.min(maxScore, evaluated.score)) : undefined;
 
       return NextResponse.json({
-        status: parsed.status || "incorrect",
-        feedback: parsed.feedback || "No feedback returned.",
-        expectedOutput: parsed.expectedOutput || "",
+        status: evaluated.status || "incorrect",
+        feedback: evaluated.feedback || "No feedback returned.",
+        expectedOutput: evaluated.expectedOutput || "",
         score: safeScore,
-        maxScore: typeof parsed.maxScore === "number" ? parsed.maxScore : maxScore,
+        maxScore: typeof evaluated.maxScore === "number" ? evaluated.maxScore : maxScore,
+        usage: { remaining: result.remaining, limit: 10 },
       });
     } catch {
       return NextResponse.json({
@@ -221,10 +224,14 @@ export async function POST(request: Request) {
         expectedOutput: "",
         score: 0,
         maxScore,
+        usage: { remaining: result.remaining, limit: 10 },
       });
     }
   } catch (error: unknown) {
-    console.error("Evaluation error:", error);
-    return NextResponse.json({ error: safeErrorMessage(error) }, { status: 500 });
+    logApiError("evaluate_api_error", error, request, { ip });
+    return NextResponse.json(
+      { error: error instanceof ServerConfigurationError ? "Server configuration error." : "Failed to evaluate code." },
+      { status: 500 },
+    );
   }
 }

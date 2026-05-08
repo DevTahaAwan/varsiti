@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { CourseListItem, CourseWeek } from "@/lib/courseTypes";
 
 type CourseWeekRow = {
@@ -10,20 +10,45 @@ type CourseWeekRow = {
   } | null;
 };
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+type FundamentalHurdleRow = {
+  hurdle_number: number;
+  hurdle_type: CourseWeek["type"];
+  title: string;
+  content: {
+    outline?: string[];
+  } | null;
+};
 
-// Create a specialized client that uses Next.js fetch caching (ISR)
-export const supabaseIsr = createClient(supabaseUrl, supabaseKey, {
-  global: {
-    fetch: (url, options) => {
-      return fetch(url, { ...options, next: { revalidate: 3600 } });
-    },
-  },
-});
+let supabaseIsr: SupabaseClient | null = null;
+
+function getPublicSupabaseEnv() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error("Supabase public configuration is missing.");
+  }
+
+  return { supabaseUrl, supabaseKey };
+}
+
+function getSupabaseIsr() {
+  if (!supabaseIsr) {
+    const { supabaseUrl, supabaseKey } = getPublicSupabaseEnv();
+    supabaseIsr = createClient(supabaseUrl, supabaseKey, {
+      global: {
+        fetch: (url, options) => {
+          return fetch(url, { ...options, next: { revalidate: 3600 } });
+        },
+      },
+    });
+  }
+
+  return supabaseIsr;
+}
 
 export async function getCourseList(): Promise<CourseListItem[]> {
-  const { data, error } = await supabaseIsr
+  const { data, error } = await getSupabaseIsr()
     .from("course_weeks")
     .select("week_number, week_type, title, content")
     .order("week_number", { ascending: true });
@@ -42,7 +67,7 @@ export async function getCourseList(): Promise<CourseListItem[]> {
 }
 
 export async function getCourseWeek(weekNum: number): Promise<CourseWeek | null> {
-  const { data, error } = await supabaseIsr
+  const { data, error } = await getSupabaseIsr()
     .from("course_weeks")
     .select("week_number, week_type, title, content")
     .eq("week_number", weekNum)
@@ -57,12 +82,12 @@ export async function getCourseWeek(weekNum: number): Promise<CourseWeek | null>
     week: data.week_number,
     type: data.week_type,
     title: data.title,
-    ...data.content
+    ...data.content,
   } as CourseWeek;
 }
 
 export async function getFundamentalsList(): Promise<CourseListItem[]> {
-  const { data, error } = await supabaseIsr
+  const { data, error } = await getSupabaseIsr()
     .from("fundamental_hurdles")
     .select("hurdle_number, hurdle_type, title, content")
     .order("hurdle_number", { ascending: true });
@@ -72,7 +97,7 @@ export async function getFundamentalsList(): Promise<CourseListItem[]> {
     return [];
   }
 
-  return ((data ?? []) as any[]).map((item) => ({
+  return ((data ?? []) as FundamentalHurdleRow[]).map((item) => ({
     weekNumber: item.hurdle_number,
     type: item.hurdle_type,
     title: item.title,
@@ -81,7 +106,7 @@ export async function getFundamentalsList(): Promise<CourseListItem[]> {
 }
 
 export async function getFundamentalsWeek(weekNum: number): Promise<CourseWeek | null> {
-  const { data, error } = await supabaseIsr
+  const { data, error } = await getSupabaseIsr()
     .from("fundamental_hurdles")
     .select("hurdle_number, hurdle_type, title, content")
     .eq("hurdle_number", weekNum)
@@ -96,6 +121,6 @@ export async function getFundamentalsWeek(weekNum: number): Promise<CourseWeek |
     week: data.hurdle_number,
     type: data.hurdle_type,
     title: data.title,
-    ...data.content
+    ...data.content,
   } as CourseWeek;
 }

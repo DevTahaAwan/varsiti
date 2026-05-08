@@ -1,46 +1,42 @@
-import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { createClient } from "@supabase/supabase-js";
+import { NextResponse } from "next/server";
+import { getAiUsage } from "@/lib/aiUsage";
+import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/rateLimit";
+import { logApiError, logSecurityEvent } from "@/lib/securityLogger";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const ip = getClientIp(request);
+
   try {
+    const ipLimit = checkRateLimit("api:usage:ip", [ip], 120, 60000);
+    if (!ipLimit.success) {
+      logSecurityEvent("usage_rate_limited_ip", request, { ip }, "warn");
+      return rateLimitResponse("Too many requests. Please try again later.", ipLimit);
+    }
+
     const { userId } = await auth();
     if (!userId) {
+      logSecurityEvent("usage_unauthorized", request, { ip }, "warn");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    
-    if (!supabaseUrl || !supabaseKey) {
-      return NextResponse.json({ error: "Supabase configuration missing." }, { status: 500 });
+    const userLimit = checkRateLimit("api:usage:user", [userId], 60, 60000);
+    if (!userLimit.success) {
+      logSecurityEvent("usage_rate_limited_user", request, { userId }, "warn");
+      return rateLimitResponse("Too many requests. Please try again later.", userLimit);
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    const today = new Date().toISOString().split('T')[0];
+    const usage = await getAiUsage(userId);
 
-    const { data: usageData, error: usageError } = await supabase
-      .from("user_ai_usage")
-      .select("request_count")
-      .eq("user_id", userId)
-      .eq("usage_date", today)
-      .single();
-
-    if (usageError && usageError.code !== "PGRST116") {
-      console.error("Supabase usage check error:", usageError);
-      return NextResponse.json({ error: "Failed to check usage limits." }, { status: 500 });
-    }
-
-    const requestCount = usageData?.request_count || 0;
-
-    return NextResponse.json({ request_count: requestCount });
-  } catch (error) {
-    console.error("Usage API error:", error);
-    return NextResponse.json(
-      { error: "Failed to get usage limit." },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      request_count: usage.requestCount,
+      remaining: usage.remaining,
+      limit: usage.limit,
+    });
+  } catch (error: unknown) {
+    logApiError("usage_api_error", error, request, { ip });
+    return NextResponse.json({ error: "Failed to get usage limit." }, { status: 500 });
   }
 }

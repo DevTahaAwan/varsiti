@@ -1,27 +1,42 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+let browserClient: SupabaseClient | null = null;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+function getPublicSupabaseEnv() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Supabase public environment variables are missing.");
+  }
+
+  return { supabaseUrl, supabaseAnonKey };
+}
+
+export function getSupabaseClient() {
+  if (!browserClient) {
+    const { supabaseUrl, supabaseAnonKey } = getPublicSupabaseEnv();
+    browserClient = createClient(supabaseUrl, supabaseAnonKey);
+  }
+
+  return browserClient;
+}
 
 /**
  * DATABASE SCHEMA DESIGN:
- * 
+ *
  * Table: users
- * - id: uuid (matches clerk userId)
+ * - id: text (matches Clerk userId)
  * - email: text
  * - created_at: timestamp
- * 
- * Table: progress
- * - id: uuid
- * - user_id: uuid (foreign key -> users.id)
- * - week_id: integer
- * - topic_type: text (e.g. "theory", "practice", "quiz")
- * - topic_index: integer
- * - status: text (e.g. "completed", "correct", "wrong")
- * - code_submission: text (optional, for code solutions)
- * - submitted_at: timestamp
- * 
- * Note: Actual table creation needs to be done via Supabase dashboard / SQL Editor.
+ *
+ * Table: user_progress
+ * - user_id: text (matches Clerk userId)
+ * - week_id: uuid
+ * - elapsed_seconds: integer
+ *
+ * Table: user_ai_usage
+ * - user_id: text (matches Clerk userId)
+ * - usage_date: date
+ * - request_count: integer
  */

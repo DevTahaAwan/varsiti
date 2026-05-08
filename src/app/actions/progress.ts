@@ -1,8 +1,9 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { z } from "zod";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { logApiError, logSecurityEvent } from "@/lib/securityLogger";
 
 const progressSchema = z.object({
   weekNumber: z.number().int().min(1).max(52),
@@ -20,15 +21,16 @@ export async function getProgress(weekNumber: number) {
   const { userId } = await auth();
   if (!userId) return null;
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdmin()
     .from("user_progress")
     .select("elapsed_seconds")
     .eq("user_id", userId)
-    .eq("week_id", weekToUuid(weekNumber))
-    .single();
+    .eq("week_id", weekToUuid(parsed.data.weekNumber))
+    .maybeSingle();
 
-  if (error && error.code !== "PGRST116") {
-    console.error("Error fetching progress:", error);
+  if (error) {
+    logApiError("progress_fetch_failed", error, undefined, { userId, weekNumber: parsed.data.weekNumber });
+    return null;
   }
 
   return data;
@@ -39,31 +41,27 @@ export async function saveProgress(weekNumber: number, elapsedSeconds: number) {
   if (!parsed.success) return { success: false, error: "Invalid input" };
 
   const { userId } = await auth();
-  if (!userId) return { success: false, error: "Unauthorized" };
+  if (!userId) {
+    logSecurityEvent("progress_save_unauthorized", undefined, { weekNumber }, "warn");
+    return { success: false, error: "Unauthorized" };
+  }
 
   const weekIdUuid = weekToUuid(parsed.data.weekNumber);
 
-  const { data: existing } = await supabaseAdmin
+  const { error } = await getSupabaseAdmin()
     .from("user_progress")
-    .select("user_id") // Using user_id instead of id in case id column isn't present
-    .eq("user_id", userId)
-    .eq("week_id", weekIdUuid)
-    .single();
+    .upsert(
+      {
+        user_id: userId,
+        week_id: weekIdUuid,
+        elapsed_seconds: parsed.data.elapsedSeconds,
+      },
+      { onConflict: "user_id,week_id" },
+    );
 
-  if (existing) {
-    const { error } = await supabaseAdmin
-      .from("user_progress")
-      .update({ elapsed_seconds: parsed.data.elapsedSeconds })
-      .eq("user_id", userId)
-      .eq("week_id", weekIdUuid);
-      
-    if (error) return { success: false, error: error.message };
-  } else {
-    const { error } = await supabaseAdmin
-      .from("user_progress")
-      .insert({ user_id: userId, week_id: weekIdUuid, elapsed_seconds: parsed.data.elapsedSeconds });
-      
-    if (error) return { success: false, error: error.message };
+  if (error) {
+    logApiError("progress_save_failed", error, undefined, { userId, weekNumber: parsed.data.weekNumber });
+    return { success: false, error: "Could not save progress." };
   }
 
   return { success: true };

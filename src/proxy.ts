@@ -1,15 +1,38 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
+import { getClientIp, rateLimit, rateLimitHeaders } from "@/lib/rateLimit";
 
-// This list ensures our landing page, about page, and webhooks stay public
 const isPublicRoute = createRouteMatcher([
-  '/',
-  '/about(.*)',
-  '/api/webhooks/clerk(.*)',
-  '/sign-in(.*)',
-  '/sign-up(.*)'
+  "/",
+  "/about(.*)",
+  "/api/webhooks/clerk(.*)",
+  "/sign-in(.*)",
+  "/sign-up(.*)",
 ]);
 
+const isAuthPage = createRouteMatcher(["/sign-in(.*)", "/sign-up(.*)"]);
+
 export default clerkMiddleware(async (auth, req) => {
+  const ip = getClientIp(req);
+  const trafficLimit = rateLimit(`traffic:${ip}`, 300, 60000);
+
+  if (!trafficLimit.success) {
+    return NextResponse.json(
+      { error: "Too many requests." },
+      { status: 429, headers: rateLimitHeaders(trafficLimit) },
+    );
+  }
+
+  if (isAuthPage(req)) {
+    const authPageLimit = rateLimit(`auth-page:${ip}`, 60, 60000);
+    if (!authPageLimit.success) {
+      return NextResponse.json(
+        { error: "Too many authentication requests." },
+        { status: 429, headers: rateLimitHeaders(authPageLimit) },
+      );
+    }
+  }
+
   if (!isPublicRoute(req)) {
     await auth.protect();
   }
@@ -17,9 +40,7 @@ export default clerkMiddleware(async (auth, req) => {
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    // Always run for API routes
-    '/(api|trpc)(.*)',
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/(api|trpc)(.*)",
   ],
 };

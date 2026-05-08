@@ -1,21 +1,31 @@
+import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { rateLimit } from "@/lib/rateLimit";
-import { auth } from "@clerk/nextjs/server";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { checkRateLimit, getClientIp, isLikelyAutomatedRequest, rateLimitResponse } from "@/lib/rateLimit";
+import { parseJsonRequest } from "@/lib/requestValidation";
+import { getOpenRouterEnv, ServerConfigurationError } from "@/lib/serverEnv";
+import { logApiError, logSecurityEvent } from "@/lib/securityLogger";
 
 export const runtime = "nodejs";
 
 const CHAT_TIMEOUT_MS = 30000;
 
-const chatSchema = z.object({
-  messages: z.array(
-    z.object({
-      role: z.enum(["user", "assistant"]),
-      content: z.string().min(1).max(5000),
-    })
-  ).min(1).max(50),
-});
+const chatSchema = z
+  .object({
+    messages: z
+      .array(
+        z
+          .object({
+            role: z.enum(["user", "assistant"]),
+            content: z.string().trim().min(1).max(5000),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(25),
+  })
+  .strict();
 
 const SYSTEM_PROMPT = `You are Varsiti AI, a friendly and expert C++ tutor embedded in the Varsiti learning platform.
 
@@ -41,133 +51,126 @@ Rules:
 - If you detect a bug, point it out clearly`;
 
 export async function POST(req: Request) {
-  try {
-    const ip = req.headers.get("x-forwarded-for") || "unknown-ip";
-    const rateLimitResult = rateLimit(`chat_${ip}`, 10, 60000); // 10 messages per minute
+  const ip = getClientIp(req);
 
-    if (!rateLimitResult.success) {
-      return NextResponse.json(
-        { error: "Rate limit exceeded. Please wait a moment." },
-        { status: 429 }
-      );
+  try {
+    const ipLimit = checkRateLimit("api:chat:ip", [ip], 30, 60000);
+    if (!ipLimit.success) {
+      logSecurityEvent("chat_rate_limited_ip", req, { ip }, "warn");
+      return rateLimitResponse("Too many chat requests. Please wait a moment.", ipLimit);
     }
 
-    const body = await req.json();
-    const parsed = chatSchema.safeParse(body);
-
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid payload." }, { status: 400 });
+    if (isLikelyAutomatedRequest(req)) {
+      const automationLimit = checkRateLimit("api:chat:automated", [ip], 5, 60000);
+      if (!automationLimit.success) {
+        logSecurityEvent("chat_automated_rate_limited", req, { ip }, "warn");
+        return rateLimitResponse("Too many automated requests.", automationLimit);
+      }
     }
 
     const { userId } = await auth();
     if (!userId) {
+      logSecurityEvent("chat_unauthorized", req, { ip }, "warn");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    
-    if (!supabaseUrl || !supabaseKey) {
-      return NextResponse.json({ error: "Supabase configuration missing." }, { status: 500 });
+    const userLimit = checkRateLimit("api:chat:user", [userId], 12, 60000);
+    if (!userLimit.success) {
+      logSecurityEvent("chat_rate_limited_user", req, { userId }, "warn");
+      return rateLimitResponse("Too many chat requests. Please wait a moment.", userLimit);
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    const today = new Date().toISOString().split('T')[0];
-
-    const { data: usageData, error: usageError } = await supabase
-      .from("user_ai_usage")
-      .select("request_count")
-      .eq("user_id", userId)
-      .eq("usage_date", today)
-      .single();
-
-    if (usageError && usageError.code !== "PGRST116") {
-      console.error("Supabase usage check error:", usageError);
-      return NextResponse.json({ error: "Failed to check usage limits." }, { status: 500 });
+    const parsed = await parseJsonRequest(req, chatSchema, { maxBytes: 100000 });
+    if (!parsed.success) {
+      return parsed.response;
     }
 
-    const requestCount = usageData?.request_count || 0;
+    // Call the atomic RPC function
+    const today = new Date().toISOString().slice(0, 10);
 
-    if (requestCount >= 10) {
+    const supabase = getSupabaseAdmin();
+    const { data: usageData, error: usageError } = await supabase.rpc("increment_ai_usage", {
+      p_user_id: userId,
+      p_usage_date: today,
+      p_limit: 10,
+    });
+
+    if (usageError) {
+      console.error("Supabase RPC error:", usageError);
+      return NextResponse.json({ error: "Failed to verify usage limits." }, { status: 500 });
+    }
+
+    // The RPC returns an array with one object, e.g., [{ allowed: true, request_count: 5, remaining: 5 }]
+    const result = usageData?.[0];
+
+    if (!result || !result.allowed) {
       return NextResponse.json(
         { error: "You have reached your free limit for today. Please come back tomorrow to keep learning!" },
         { status: 429 }
       );
     }
 
-    if (usageData) {
-      await supabase
-        .from("user_ai_usage")
-        .update({ request_count: requestCount + 1 })
-        .eq("user_id", userId)
-        .eq("usage_date", today);
-    } else {
-      await supabase
-        .from("user_ai_usage")
-        .insert({ user_id: userId, usage_date: today, request_count: 1 });
-    }
+    const { openRouterApiKey, appUrl } = getOpenRouterEnv();
 
-    const messages = parsed.data.messages;
-
-    const apiKey = process.env.OPENROUTER_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: "OPENROUTER_API_KEY is not set in .env.local" }, { status: 500 });
-    }
-
-    // Build messages array for OpenRouter (OpenAI-compatible format)
     const openRouterMessages = [
       { role: "system", content: SYSTEM_PROMPT },
-      ...messages.map(m => ({
-        role: m.role === "assistant" ? "assistant" : "user",
-        content: m.content,
+      ...parsed.data.messages.map((message) => ({
+        role: message.role === "assistant" ? "assistant" : "user",
+        content: message.content,
       })),
     ];
 
     const fetchPromise = fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "HTTP-Referer": "https://varsiti.xyz",
+        Authorization: `Bearer ${openRouterApiKey}`,
+        "HTTP-Referer": appUrl,
         "X-Title": "Varsiti",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         model: "meta-llama/llama-3.3-70b-instruct:free",
-        models: [
-          "openai/gpt-oss-120b:free",
-          "google/gemma-4-31b-it:free",
-          "qwen/qwen3-coder:free"
-        ],
+        models: ["openai/gpt-oss-120b:free", "google/gemma-4-31b-it:free", "qwen/qwen3-coder:free"],
         messages: openRouterMessages,
         temperature: 0.7,
         max_tokens: 2048,
       }),
+      cache: "no-store",
     });
 
     const completionResponse = await Promise.race([
       fetchPromise,
       new Promise<Response>((_, reject) =>
-        setTimeout(() => reject(new Error("AI request timed out. Please try again.")), CHAT_TIMEOUT_MS)
+        setTimeout(() => reject(new Error("AI request timed out.")), CHAT_TIMEOUT_MS),
       ),
     ]);
 
     if (!completionResponse.ok) {
       const errorText = await completionResponse.text();
-      console.error("OpenRouter API error:", errorText);
-      throw new Error(`OpenRouter API responded with status ${completionResponse.status}`);
+      logSecurityEvent(
+        "openrouter_chat_failed",
+        req,
+        { userId, status: completionResponse.status, providerMessage: errorText.slice(0, 500) },
+        "error",
+      );
+      return NextResponse.json({ error: "AI service is unavailable right now." }, { status: 502 });
     }
 
-    const completion = await completionResponse.json();
+    const completion = (await completionResponse.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+    };
 
     const reply = completion.choices?.[0]?.message?.content || "Sorry, I could not generate a response.";
-    return NextResponse.json({ reply });
-
+    return NextResponse.json({
+      reply,
+      usage: { remaining: result.remaining, limit: 10 },
+    });
   } catch (error: unknown) {
-    console.error("Chat API error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Failed to get AI response.";
+    const status = error instanceof ServerConfigurationError ? 500 : 500;
+    logApiError("chat_api_error", error, req, { ip });
     return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
+      { error: error instanceof ServerConfigurationError ? "Server configuration error." : "Failed to get AI response." },
+      { status },
     );
   }
 }
