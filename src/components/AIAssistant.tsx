@@ -153,7 +153,7 @@ function MessageBubble({
 
 export default function AIAssistant() {
 	const { isOpen, openChat, closeChat } = useAIAssistant();
-	const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat() as any;
+	const { messages, input, setInput, handleInputChange, handleSubmit, isLoading } = useChat() as any;
 	const { userId } = useAuth();
 	const router = useRouter();
 	const bottomRef = useRef<HTMLDivElement>(null);
@@ -406,8 +406,8 @@ export default function AIAssistant() {
 							>
 								<textarea
 									ref={textareaRef}
-									value={input}
-									onChange={handleInputChange}
+									value={input || ""}
+									onChange={(e) => setInput(e.target.value)}
 									onKeyDown={(e) => {
 										if (e.key === "Enter" && !e.shiftKey) {
 											e.preventDefault();
