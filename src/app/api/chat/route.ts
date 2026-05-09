@@ -7,10 +7,10 @@ import { parseJsonRequest } from "@/lib/requestValidation";
 import { getOpenRouterEnv, ServerConfigurationError } from "@/lib/serverEnv";
 import { logApiError, logSecurityEvent } from "@/lib/securityLogger";
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 export const runtime = "edge";
 
-const CHAT_TIMEOUT_MS = 30000;
+const CHAT_TIMEOUT_MS = 60000;
 
 const chatSchema = z
   .object({
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
   const ip = getClientIp(req);
 
   try {
-    const ipLimit = checkRateLimit("api:chat:ip", [ip], 30, 60000);
+    const ipLimit = checkRateLimit("api:chat:ip", [ip], 60, 60000);
     if (!ipLimit.success) {
       logSecurityEvent("chat_rate_limited_ip", req, { ip }, "warn");
       return rateLimitResponse("Too many chat requests. Please wait a moment.", ipLimit);
