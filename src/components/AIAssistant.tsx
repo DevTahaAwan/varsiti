@@ -37,7 +37,7 @@ function parseMessage(
 		}
 		parts.push({
 			type: "code",
-			content: match[2].trim(),
+			content: (match[2] || "").trim(),
 			lang: match[1] || "cpp",
 		});
 		lastIndex = match.index + match[0].length;
@@ -159,11 +159,16 @@ export default function AIAssistant() {
 	const bottomRef = useRef<HTMLDivElement>(null);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const chatRef = useRef<HTMLDivElement>(null);
-	const isExpandedComposer = messages.length > 0;
-	const hasConversation = isExpandedComposer || input.trim().length > 0;
+	const isExpandedComposer = messages?.length > 0;
+	const hasConversation = isExpandedComposer || (input || "").trim().length > 0;
 
 	const [requestCount, setRequestCount] = useState<number | null>(null);
 	const [showWelcome, setShowWelcome] = useState(true);
+	const [isMounted, setIsMounted] = useState(false);
+
+	useEffect(() => {
+		setIsMounted(true);
+	}, []);
 
 	useEffect(() => {
 		if (userId) {
@@ -226,13 +231,15 @@ export default function AIAssistant() {
 			router.push("/sign-in");
 			return;
 		}
-		if (!input.trim() || isLoading) return;
+		if (!input || !input.trim() || isLoading) return;
 
 		if (requestCount !== null) {
 			setRequestCount((c) => (c !== null ? c + 1 : c));
 		}
 		handleSubmit(e);
 	};
+
+	if (!isMounted) return null;
 
 	return (
 		<>
@@ -320,7 +327,7 @@ export default function AIAssistant() {
 
 						{/* Messages */}
 						<div className="flex-1 overflow-y-auto p-4 space-y-4">
-							{messages.length === 0 && (
+							{(!messages || messages.length === 0) && (
 								<div className="text-center py-8 space-y-3">
 									<div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
 										<Bot size={32} />
@@ -335,7 +342,7 @@ export default function AIAssistant() {
 								</div>
 							)}
 
-							{messages
+							{(messages || [])
 								.filter((m: any) => m.role === 'user' || m.role === 'assistant')
 								.map((m: any, i: number) => {
 									const safeRole = m.role as "user" | "assistant";
@@ -414,7 +421,7 @@ export default function AIAssistant() {
 								/>
 								<button
 									type="submit"
-									disabled={!input.trim() || isLoading}
+									disabled={!input || !input.trim() || isLoading}
 									className="p-2 rounded-xl bg-primary text-primary-foreground disabled:opacity-50 transition-all hover:scale-105 active:scale-95 shrink-0"
 								>
 									{isLoading ? (
