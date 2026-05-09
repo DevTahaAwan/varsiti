@@ -405,23 +405,29 @@ export default function CustomCursor() {
 
 		root.classList.add("custom-cursor-enabled");
 
-		const update = (e: MouseEvent) => {
+		let hoveredElement: Element | null = null;
+
+		const updateMousePos = (e: MouseEvent) => {
 			mouse.current = { x: e.clientX, y: e.clientY };
-			const el = document.elementFromPoint(e.clientX, e.clientY);
-			setCursorType(detectCursorType(el, isDown.current));
-		};
-		const onDown = (e: MouseEvent) => {
-			isDown.current = true;
-			const el = document.elementFromPoint(e.clientX, e.clientY);
-			setCursorType(detectCursorType(el, true));
-		};
-		const onUp = (e: MouseEvent) => {
-			isDown.current = false;
-			const el = document.elementFromPoint(e.clientX, e.clientY);
-			setCursorType(detectCursorType(el, false));
 		};
 
-		window.addEventListener("mousemove", update, { passive: true });
+		const onMouseOver = (e: MouseEvent) => {
+			hoveredElement = e.target as Element;
+			setCursorType(detectCursorType(hoveredElement, isDown.current));
+		};
+
+		const onDown = () => {
+			isDown.current = true;
+			setCursorType(detectCursorType(hoveredElement, true));
+		};
+
+		const onUp = () => {
+			isDown.current = false;
+			setCursorType(detectCursorType(hoveredElement, false));
+		};
+
+		window.addEventListener("mousemove", updateMousePos, { passive: true });
+		window.addEventListener("mouseover", onMouseOver, { passive: true });
 		window.addEventListener("mousedown", onDown, { passive: true });
 		window.addEventListener("mouseup", onUp, { passive: true });
 
@@ -455,7 +461,8 @@ export default function CustomCursor() {
 
 		return () => {
 			root.classList.remove("custom-cursor-enabled");
-			window.removeEventListener("mousemove", update);
+			window.removeEventListener("mousemove", updateMousePos);
+			window.removeEventListener("mouseover", onMouseOver);
 			window.removeEventListener("mousedown", onDown);
 			window.removeEventListener("mouseup", onUp);
 			cancelAnimationFrame(rafRef.current);
@@ -468,7 +475,7 @@ export default function CustomCursor() {
 		<>
 			<div
 				ref={mainRef}
-				className="fixed top-0 left-0 pointer-events-none z-[999999]"
+				className="fixed top-0 left-0 pointer-events-none z-999999"
 				style={{ willChange: "transform" }}
 			>
 				<CursorShape type={cursorType} />
@@ -479,7 +486,7 @@ export default function CustomCursor() {
 					ref={(el) => {
 						trailRefs.current[i] = el;
 					}}
-					className="fixed top-0 left-0 pointer-events-none z-[999998] rounded-full"
+					className="fixed top-0 left-0 pointer-events-none z-999998 rounded-full"
 					style={{
 						backgroundColor: "var(--primary)",
 						willChange: "transform, opacity, width, height",

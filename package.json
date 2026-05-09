@@ -1,6 +1,6 @@
 {
   "name": "varsiti",
-  "version": "1.5.4",
+  "version": "1.5.5",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^7.2.2",
+    "@clerk/themes": "^2.4.57",
     "@google/generative-ai": "^0.24.1",
     "@monaco-editor/react": "^4.7.0",
     "@supabase/supabase-js": "^2.103.3",

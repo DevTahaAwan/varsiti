@@ -1,6 +1,7 @@
 "use client";
 
 import { UserButton, useAuth } from "@clerk/nextjs";
+import { dark } from "@clerk/themes";
 import Link from "next/link";
 import { Palette } from "lucide-react";
 import Image from "next/image";
@@ -179,6 +180,7 @@ export default function TopNav() {
 							) : (
 								<UserButton
 							appearance={{
+								baseTheme: currentTheme.isDark ? dark : undefined,
 								elements: {
 									/* ── Avatar trigger chip ── */
 									userButtonTrigger: {
