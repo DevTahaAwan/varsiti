@@ -153,7 +153,6 @@ function MessageBubble({
 
 export default function AIAssistant() {
 	const { isOpen, openChat, closeChat } = useAIAssistant();
-	// @ts-expect-error - Bypassing mismatched AI SDK type definitions for production build
 	const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat() as any;
 	const { userId } = useAuth();
 	const router = useRouter();
