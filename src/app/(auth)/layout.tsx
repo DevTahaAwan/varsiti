@@ -15,7 +15,7 @@ export default function AuthLayout({
       </div>
 
       <div className="relative z-10 w-full max-w-md p-6">
-        <div className="flex justify-center mb-8">
+        <div className="flex justify-center">
           <div className="clay-card p-4 rounded-3xl flex items-center justify-center">
             <Image src="/logo.png" alt="Varsiti Logo" width={80} height={80} className="object-contain drop-shadow-md" style={{ width: "auto", height: "auto" }} />
           </div>

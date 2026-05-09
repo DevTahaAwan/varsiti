@@ -197,6 +197,10 @@ export default function TopNav() {
 									},
 
 									/* ── Dropdown popover card ── */
+									userProfileModalBox: {
+										maxHeight: "85vh",
+										margin: "auto",
+									},
 									userButtonPopoverCard: {
 										backgroundColor:
 											"color-mix(in oklab, var(--card) 88%, transparent)",
@@ -208,6 +212,7 @@ export default function TopNav() {
 										padding: "8px",
 										color: "var(--foreground)",
 										minWidth: "260px",
+										maxHeight: "85vh",
 									},
 									userButtonPopoverActionButton: {
 										borderRadius: "12px",
