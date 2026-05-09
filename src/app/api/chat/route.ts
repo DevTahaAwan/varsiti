@@ -7,7 +7,8 @@ import { parseJsonRequest } from "@/lib/requestValidation";
 import { getOpenRouterEnv, ServerConfigurationError } from "@/lib/serverEnv";
 import { logApiError, logSecurityEvent } from "@/lib/securityLogger";
 
-export const runtime = "nodejs";
+export const maxDuration = 30;
+export const runtime = "edge";
 
 const CHAT_TIMEOUT_MS = 30000;
 

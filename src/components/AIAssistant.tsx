@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
 	Bot,
 	X,
@@ -133,12 +135,14 @@ function MessageBubble({
 						);
 					}
 					return (
-						<p
+						<div
 							key={i}
-							className="text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap"
+							className="prose prose-sm dark:prose-invert text-sm leading-relaxed text-foreground/90 max-w-none"
 						>
-							{part.content}
-						</p>
+							<ReactMarkdown remarkPlugins={[remarkGfm]}>
+								{part.content}
+							</ReactMarkdown>
+						</div>
 					);
 				})}
 			</div>
@@ -239,7 +243,7 @@ export default function AIAssistant() {
 						initial={{ opacity: 0, y: 10, scale: 0.95 }}
 						animate={{ opacity: 1, y: 0, scale: 1 }}
 						exit={{ opacity: 0, scale: 0.95 }}
-						className="fixed bottom-[90px] right-6 z-50 w-64 bg-card border border-border rounded-2xl p-4 shadow-2xl origin-bottom-right"
+						className="fixed bottom-[90] right-6 z-50 w-64 bg-card border border-border rounded-2xl p-4 shadow-2xl origin-bottom-right"
 					>
 						<button
 							onClick={() => setShowWelcome(false)}
@@ -289,7 +293,7 @@ export default function AIAssistant() {
 							stiffness: 300,
 							damping: 30,
 						}}
-						className={`fixed bottom-4 right-4 left-4 sm:left-auto sm:bottom-6 sm:right-6 z-50 ${isExpandedComposer ? "sm:w-[42rem] h-[min(52rem,92vh)]" : hasConversation ? "sm:w-[30rem] h-[min(44rem,90vh)]" : "sm:w-96 h-[560px] max-h-[90vh]"} w-auto bg-card border border-border rounded-3xl shadow-2xl flex flex-col overflow-hidden`}
+						className={`fixed bottom-4 right-4 left-4 sm:left-auto sm:bottom-6 sm:right-6 z-50 ${isExpandedComposer ? "sm:w-2xl h-[min(52rem,92vh)]" : hasConversation ? "sm:w-120 h-[min(44rem,90vh)]" : "sm:w-96 h-140 max-h-[90vh]"} w-auto bg-card border border-border rounded-3xl shadow-2xl flex flex-col overflow-hidden`}
 						style={{
 							boxShadow:
 								"0 0 40px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.05)",
