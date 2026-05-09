@@ -401,7 +401,7 @@ export default function AIAssistant() {
 								</div>
 							)}
 							<form
-								onSubmit={handleFormSubmit}
+								onSubmit={handleSubmit}
 								className={`flex gap-2.5 items-end bg-secondary rounded-2xl px-4 border border-border focus-within:border-primary transition-colors ${isExpandedComposer ? "py-4" : "py-3"}`}
 							>
 								<textarea
@@ -421,7 +421,7 @@ export default function AIAssistant() {
 								/>
 								<button
 									type="submit"
-									disabled={!input || !input.trim() || isLoading}
+									disabled={isLoading || !input || input.trim() === ''}
 									className="p-2 rounded-xl bg-primary text-primary-foreground disabled:opacity-50 transition-all hover:scale-105 active:scale-95 shrink-0"
 								>
 									{isLoading ? (
