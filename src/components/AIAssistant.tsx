@@ -16,7 +16,6 @@ import {
 import { useAIAssistant } from "@/lib/AIAssistantContext";
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { useChat } from '@ai-sdk/react';
 
 // Detect code blocks in a message and split into parts
 function parseMessage(
@@ -37,7 +36,7 @@ function parseMessage(
 		}
 		parts.push({
 			type: "code",
-			content: (match[2] || "").trim(),
+			content: match[2].trim(),
 			lang: match[1] || "cpp",
 		});
 		lastIndex = match.index + match[0].length;
@@ -152,23 +151,19 @@ function MessageBubble({
 }
 
 export default function AIAssistant() {
-	const { isOpen, openChat, closeChat } = useAIAssistant();
-	const { messages, input, setInput, handleInputChange, handleSubmit, isLoading } = useChat() as any;
+	const { isOpen, openChat, closeChat, messages, sendMessage, isLoading } =
+		useAIAssistant();
 	const { userId } = useAuth();
 	const router = useRouter();
+	const [input, setInput] = useState("");
 	const bottomRef = useRef<HTMLDivElement>(null);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const chatRef = useRef<HTMLDivElement>(null);
-	const isExpandedComposer = messages?.length > 0;
-	const hasConversation = isExpandedComposer || (input || "").trim().length > 0;
+	const isExpandedComposer = messages.length > 0;
+	const hasConversation = isExpandedComposer || input.trim().length > 0;
 
 	const [requestCount, setRequestCount] = useState<number | null>(null);
 	const [showWelcome, setShowWelcome] = useState(true);
-	const [isMounted, setIsMounted] = useState(false);
-
-	useEffect(() => {
-		setIsMounted(true);
-	}, []);
 
 	useEffect(() => {
 		if (userId) {
@@ -225,21 +220,19 @@ export default function AIAssistant() {
 		el.style.height = `${Math.max(nextHeight, 44)}px`;
 	}, [input]);
 
-	const handleFormSubmit = (e: React.FormEvent) => {
-		e.preventDefault();
+	const handleSend = () => {
 		if (!userId) {
 			router.push("/sign-in");
 			return;
 		}
-		if (!input || !input.trim() || isLoading) return;
-
+		const msg = input.trim();
+		if (!msg || isLoading) return;
+		setInput("");
 		if (requestCount !== null) {
 			setRequestCount((c) => (c !== null ? c + 1 : c));
 		}
-		handleSubmit(e);
+		sendMessage(msg);
 	};
-
-	if (!isMounted) return null;
 
 	return (
 		<>
@@ -327,7 +320,7 @@ export default function AIAssistant() {
 
 						{/* Messages */}
 						<div className="flex-1 overflow-y-auto p-4 space-y-4">
-							{(!messages || messages.length === 0) && (
+							{messages.length === 0 && (
 								<div className="text-center py-8 space-y-3">
 									<div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
 										<Bot size={32} />
@@ -342,25 +335,18 @@ export default function AIAssistant() {
 								</div>
 							)}
 
-							{(messages || [])
-								.filter((m: any) => m.role === 'user' || m.role === 'assistant')
-								.map((m: any, i: number) => {
-									const safeRole = m.role as "user" | "assistant";
-									const safeContent = (m.content || "") as string;
-									
-									return (
-										<motion.div
-											key={m.id || i}
-											initial={{ opacity: 0, y: 8 }}
-											animate={{ opacity: 1, y: 0 }}
-										>
-											<MessageBubble
-												role={safeRole}
-												content={safeContent}
-											/>
-										</motion.div>
-									);
-								})}
+							{messages.map((msg, i) => (
+								<motion.div
+									key={i}
+									initial={{ opacity: 0, y: 8 }}
+									animate={{ opacity: 1, y: 0 }}
+								>
+									<MessageBubble
+										role={msg.role}
+										content={msg.content}
+									/>
+								</motion.div>
+							))}
 
 							{isLoading && (
 								<div className="flex items-center gap-2.5">
@@ -400,18 +386,17 @@ export default function AIAssistant() {
 									</span>
 								</div>
 							)}
-							<form
-								onSubmit={handleSubmit}
+							<div
 								className={`flex gap-2.5 items-end bg-secondary rounded-2xl px-4 border border-border focus-within:border-primary transition-colors ${isExpandedComposer ? "py-4" : "py-3"}`}
 							>
 								<textarea
 									ref={textareaRef}
-									value={input || ""}
+									value={input}
 									onChange={(e) => setInput(e.target.value)}
 									onKeyDown={(e) => {
 										if (e.key === "Enter" && !e.shiftKey) {
 											e.preventDefault();
-											e.currentTarget.form?.requestSubmit();
+											handleSend();
 										}
 									}}
 									placeholder="Ask about C++ concepts, code..."
@@ -420,8 +405,8 @@ export default function AIAssistant() {
 									style={{ scrollbarWidth: "none" }}
 								/>
 								<button
-									type="submit"
-									disabled={isLoading || !input || input.trim() === ''}
+									onClick={handleSend}
+									disabled={!input.trim() || isLoading}
 									className="p-2 rounded-xl bg-primary text-primary-foreground disabled:opacity-50 transition-all hover:scale-105 active:scale-95 shrink-0"
 								>
 									{isLoading ? (
@@ -433,7 +418,7 @@ export default function AIAssistant() {
 										<Send size={16} />
 									)}
 								</button>
-							</form>
+							</div>
 							<p className="text-[10px] text-muted-foreground text-center mt-2">
 								Enter to send · Shift+Enter for newline
 							</p>
