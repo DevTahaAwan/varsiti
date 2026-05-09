@@ -16,6 +16,7 @@ import {
 import { useAIAssistant } from "@/lib/AIAssistantContext";
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
+import { useChat } from '@ai-sdk/react';
 
 // Detect code blocks in a message and split into parts
 function parseMessage(
@@ -151,11 +152,10 @@ function MessageBubble({
 }
 
 export default function AIAssistant() {
-	const { isOpen, openChat, closeChat, messages, sendMessage, isLoading } =
-		useAIAssistant();
+	const { isOpen, openChat, closeChat } = useAIAssistant();
+	const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat();
 	const { userId } = useAuth();
 	const router = useRouter();
-	const [input, setInput] = useState("");
 	const bottomRef = useRef<HTMLDivElement>(null);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const chatRef = useRef<HTMLDivElement>(null);
@@ -220,18 +220,18 @@ export default function AIAssistant() {
 		el.style.height = `${Math.max(nextHeight, 44)}px`;
 	}, [input]);
 
-	const handleSend = () => {
+	const handleFormSubmit = (e: React.FormEvent) => {
+		e.preventDefault();
 		if (!userId) {
 			router.push("/sign-in");
 			return;
 		}
-		const msg = input.trim();
-		if (!msg || isLoading) return;
-		setInput("");
+		if (!input.trim() || isLoading) return;
+
 		if (requestCount !== null) {
 			setRequestCount((c) => (c !== null ? c + 1 : c));
 		}
-		sendMessage(msg);
+		handleSubmit(e);
 	};
 
 	return (
@@ -335,18 +335,25 @@ export default function AIAssistant() {
 								</div>
 							)}
 
-							{messages.map((msg, i) => (
-								<motion.div
-									key={i}
-									initial={{ opacity: 0, y: 8 }}
-									animate={{ opacity: 1, y: 0 }}
-								>
-									<MessageBubble
-										role={msg.role}
-										content={msg.content}
-									/>
-								</motion.div>
-							))}
+							{messages
+								.filter((m) => m.role === 'user' || m.role === 'assistant')
+								.map((m, i) => {
+									const safeRole = m.role as "user" | "assistant";
+									const safeContent = (m.content || "") as string;
+									
+									return (
+										<motion.div
+											key={m.id || i}
+											initial={{ opacity: 0, y: 8 }}
+											animate={{ opacity: 1, y: 0 }}
+										>
+											<MessageBubble
+												role={safeRole}
+												content={safeContent}
+											/>
+										</motion.div>
+									);
+								})}
 
 							{isLoading && (
 								<div className="flex items-center gap-2.5">
@@ -386,17 +393,18 @@ export default function AIAssistant() {
 									</span>
 								</div>
 							)}
-							<div
+							<form
+								onSubmit={handleFormSubmit}
 								className={`flex gap-2.5 items-end bg-secondary rounded-2xl px-4 border border-border focus-within:border-primary transition-colors ${isExpandedComposer ? "py-4" : "py-3"}`}
 							>
 								<textarea
 									ref={textareaRef}
 									value={input}
-									onChange={(e) => setInput(e.target.value)}
+									onChange={handleInputChange}
 									onKeyDown={(e) => {
 										if (e.key === "Enter" && !e.shiftKey) {
 											e.preventDefault();
-											handleSend();
+											e.currentTarget.form?.requestSubmit();
 										}
 									}}
 									placeholder="Ask about C++ concepts, code..."
@@ -405,7 +413,7 @@ export default function AIAssistant() {
 									style={{ scrollbarWidth: "none" }}
 								/>
 								<button
-									onClick={handleSend}
+									type="submit"
 									disabled={!input.trim() || isLoading}
 									className="p-2 rounded-xl bg-primary text-primary-foreground disabled:opacity-50 transition-all hover:scale-105 active:scale-95 shrink-0"
 								>
@@ -418,7 +426,7 @@ export default function AIAssistant() {
 										<Send size={16} />
 									)}
 								</button>
-							</div>
+							</form>
 							<p className="text-[10px] text-muted-foreground text-center mt-2">
 								Enter to send · Shift+Enter for newline
 							</p>
