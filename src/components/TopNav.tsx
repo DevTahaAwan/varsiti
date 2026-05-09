@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth, SignInButton, UserButton } from "@clerk/nextjs";
+import { SignInButton, UserButton, useAuth } from "@clerk/nextjs";
 import Link from "next/link";
 import { Palette } from "lucide-react";
 import Image from "next/image";
@@ -177,7 +177,7 @@ export default function TopNav() {
 									</button>
 								</SignInButton>
 							) : (
-						<UserButton
+								<UserButton
 							appearance={{
 								elements: {
 									/* ── Avatar trigger chip ── */
