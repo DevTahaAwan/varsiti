@@ -19,10 +19,10 @@ const cspDirectives = [
   "img-src 'self' data: blob: https://img.clerk.com https:",
   "font-src 'self' data:",
   "style-src 'self' 'unsafe-inline'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev https://*.clerk.dev https://*.clerk.com https://challenges.cloudflare.com",
-  "connect-src 'self' https://*.supabase.co https://*.clerk.accounts.dev https://*.clerk.dev https://*.clerk.com https://api.emailjs.com https://api.openrouter.ai",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://clerk.varsiti.xyz https://*.clerk.accounts.dev https://*.clerk.dev https://*.clerk.com https://challenges.cloudflare.com",
+  "connect-src 'self' https://*.supabase.co https://clerk.varsiti.xyz https://*.clerk.accounts.dev https://*.clerk.dev https://*.clerk.com https://api.emailjs.com https://api.openrouter.ai",
   "frame-src https://*.clerk.accounts.dev https://*.clerk.dev https://*.clerk.com https://challenges.cloudflare.com",
-  "worker-src 'self' blob:",
+  "worker-src 'self' blob: https://clerk.varsiti.xyz https://*.clerk.accounts.dev https://*.clerk.dev https://*.clerk.com",
   "media-src 'self' blob:",
   process.env.NODE_ENV === "production" ? "upgrade-insecure-requests" : "",
 ].filter(Boolean);
