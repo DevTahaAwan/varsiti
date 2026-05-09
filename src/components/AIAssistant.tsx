@@ -4,14 +4,15 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useChat } from "@ai-sdk/react";
 import {
-	Bot,
-	X,
-	Send,
-	Clipboard,
-	ClipboardCheck,
-	Loader2,
-	Sparkles,
+    Bot,
+    X,
+    Send,
+    Clipboard,
+    ClipboardCheck,
+    Loader2,
+    Sparkles,
 } from "lucide-react";
 import { useAIAssistant } from "@/lib/AIAssistantContext";
 import { useAuth } from "@clerk/nextjs";
@@ -19,413 +20,440 @@ import { useRouter } from "next/navigation";
 
 // Detect code blocks in a message and split into parts
 function parseMessage(
-	content: string,
+    content: string,
 ): { type: "text" | "code"; content: string; lang?: string }[] {
-	const parts: { type: "text" | "code"; content: string; lang?: string }[] =
-		[];
-	const pattern = /```(\w*)\n?([\s\S]*?)```/g;
-	let lastIndex = 0;
-	let match;
+    const parts: { type: "text" | "code"; content: string; lang?: string }[] =
+        [];
+    const pattern = /```(\w*)\n?([\s\S]*?)```/g;
+    let lastIndex = 0;
+    let match;
 
-	while ((match = pattern.exec(content)) !== null) {
-		if (match.index > lastIndex) {
-			parts.push({
-				type: "text",
-				content: content.slice(lastIndex, match.index),
-			});
-		}
-		parts.push({
-			type: "code",
-			content: match[2].trim(),
-			lang: match[1] || "cpp",
-		});
-		lastIndex = match.index + match[0].length;
-	}
-	if (lastIndex < content.length) {
-		parts.push({ type: "text", content: content.slice(lastIndex) });
-	}
-	return parts;
+    while ((match = pattern.exec(content)) !== null) {
+        if (match.index > lastIndex) {
+            parts.push({
+                type: "text",
+                content: content.slice(lastIndex, match.index),
+            });
+        }
+        parts.push({
+            type: "code",
+            content: match[2].trim(),
+            lang: match[1] || "cpp",
+        });
+        lastIndex = match.index + match[0].length;
+    }
+    if (lastIndex < content.length) {
+        parts.push({ type: "text", content: content.slice(lastIndex) });
+    }
+    return parts;
 }
 
 function CodeBlock({ code, lang }: { code: string; lang: string }) {
-	const [copied, setCopied] = useState(false);
-	const { copyToEditor, editorWeekId } = useAIAssistant();
+    const [copied, setCopied] = useState(false);
+    const { copyToEditor, editorWeekId } = useAIAssistant();
 
-	const handleCopy = () => {
-		navigator.clipboard.writeText(code);
-		setCopied(true);
-		setTimeout(() => setCopied(false), 2000);
-	};
+    const handleCopy = () => {
+        navigator.clipboard.writeText(code);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
 
-	const handleCopyToEditor = () => {
-		copyToEditor(code);
-	};
+    const handleCopyToEditor = () => {
+        copyToEditor(code);
+    };
 
-	return (
-		<div className="mt-2 mb-2 rounded-xl overflow-hidden border border-white/10 text-xs">
-			<div className="bg-[#111] px-3 py-2 flex items-center justify-between gap-2">
-				<span className="text-gray-400 font-mono uppercase tracking-wider text-[10px]">
-					{lang}
-				</span>
-				<div className="flex gap-1.5">
-					{editorWeekId &&
-						(lang === "cpp" || lang === "c++" || lang === "") && (
-							<button
-								onClick={handleCopyToEditor}
-								className="flex items-center gap-1 px-2 py-1 rounded-md bg-primary/20 hover:bg-primary/40 text-primary text-[10px] font-semibold transition-colors"
-							>
-								<Sparkles size={10} /> Copy to Editor
-							</button>
-						)}
-					<button
-						onClick={handleCopy}
-						className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-					>
-						{copied ? (
-							<ClipboardCheck
-								size={13}
-								className="text-green-400"
-							/>
-						) : (
-							<Clipboard size={13} />
-						)}
-					</button>
-				</div>
-			</div>
-			<pre className="bg-[#1e1e1e] p-3 overflow-x-auto font-mono text-gray-300 leading-relaxed text-[11px]">
-				{code}
-			</pre>
-		</div>
-	);
+    return (
+        <div className="mt-2 mb-2 rounded-xl overflow-hidden border border-white/10 text-xs">
+            <div className="bg-[#111] px-3 py-2 flex items-center justify-between gap-2">
+                <span className="text-gray-400 font-mono uppercase tracking-wider text-[10px]">
+                    {lang}
+                </span>
+                <div className="flex gap-1.5">
+                    {editorWeekId &&
+                        (lang === "cpp" || lang === "c++" || lang === "") && (
+                            <button
+                                onClick={handleCopyToEditor}
+                                className="flex items-center gap-1 px-2 py-1 rounded-md bg-primary/20 hover:bg-primary/40 text-primary text-[10px] font-semibold transition-colors"
+                            >
+                                <Sparkles size={10} /> Copy to Editor
+                            </button>
+                        )}
+                    <button
+                        onClick={handleCopy}
+                        className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                    >
+                        {copied ? (
+                            <ClipboardCheck
+                                size={13}
+                                className="text-green-400"
+                            />
+                        ) : (
+                            <Clipboard size={13} />
+                        )}
+                    </button>
+                </div>
+            </div>
+            <pre className="bg-[#1e1e1e] p-3 overflow-x-auto font-mono text-gray-300 leading-relaxed text-[11px]">
+                {code}
+            </pre>
+        </div>
+    );
 }
 
 function MessageBubble({
-	role,
-	content,
+    role,
+    content,
 }: {
-	role: "user" | "assistant";
-	content: string;
+    role: "user" | "assistant";
+    content: string;
 }) {
-	const parts = parseMessage(content);
+    const parts = parseMessage(content || "");
 
-	if (role === "user") {
-		return (
-			<div className="flex justify-end">
-				<div className="bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm max-w-[85%] leading-relaxed">
-					{content}
-				</div>
-			</div>
-		);
-	}
+    if (role === "user") {
+        return (
+            <div className="flex justify-end">
+                <div className="bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm max-w-[85%] leading-relaxed">
+                    {content}
+                </div>
+            </div>
+        );
+    }
 
-	return (
-		<div className="flex justify-start gap-2.5">
-			<div className="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0 mt-0.5">
-				<Bot size={15} />
-			</div>
-			<div className="max-w-[90%] space-y-1">
-				{parts.map((part, i) => {
-					if (part.type === "code") {
-						return (
-							<CodeBlock
-								key={i}
-								code={part.content}
-								lang={part.lang || "cpp"}
-							/>
-						);
-					}
-					return (
-						<div
-							key={i}
-							className="prose prose-sm dark:prose-invert text-sm leading-relaxed text-foreground/90 max-w-none"
-						>
-							<ReactMarkdown remarkPlugins={[remarkGfm]}>
-								{part.content}
-							</ReactMarkdown>
-						</div>
-					);
-				})}
-			</div>
-		</div>
-	);
+    return (
+        <div className="flex justify-start gap-2.5">
+            <div className="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                <Bot size={15} />
+            </div>
+            <div className="max-w-[90%] space-y-1">
+                {parts.map((part, i) => {
+                    if (part.type === "code") {
+                        return (
+                            <CodeBlock
+                                key={i}
+                                code={part.content}
+                                lang={part.lang || "cpp"}
+                            />
+                        );
+                    }
+                    return (
+                        <div
+                            key={i}
+                            className="prose prose-sm dark:prose-invert text-sm leading-relaxed text-foreground/90 max-w-none"
+                        >
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {part.content}
+                            </ReactMarkdown>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
 }
 
 export default function AIAssistant() {
-	const { isOpen, openChat, closeChat, messages, sendMessage, isLoading } =
-		useAIAssistant();
-	const { userId } = useAuth();
-	const router = useRouter();
-	const [input, setInput] = useState("");
-	const bottomRef = useRef<HTMLDivElement>(null);
-	const textareaRef = useRef<HTMLTextAreaElement>(null);
-	const chatRef = useRef<HTMLDivElement>(null);
-	const isExpandedComposer = messages.length > 0;
-	const hasConversation = isExpandedComposer || input.trim().length > 0;
+    const { isOpen, openChat, closeChat, externalPrompt, clearExternalPrompt } = useAIAssistant();
+    const { userId } = useAuth();
+    const router = useRouter();
+    
+    // SDK Hook to handle streaming and state
+    const { messages, input, handleInputChange, handleSubmit, isLoading, append } = useChat() as any;
 
-	const [requestCount, setRequestCount] = useState<number | null>(null);
-	const [showWelcome, setShowWelcome] = useState(true);
+    const bottomRef = useRef<HTMLDivElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const chatRef = useRef<HTMLDivElement>(null);
+    
+    // Filter messages to ensure TypeScript is happy
+    const visibleMessages = messages.filter((m: any) => m.role === 'user' || m.role === 'assistant');
+    const isExpandedComposer = visibleMessages.length > 0;
+    const hasConversation = isExpandedComposer || (input || '').trim().length > 0;
 
-	useEffect(() => {
-		if (userId) {
-			const fetchUsage = async () => {
-				try {
-					const res = await fetch("/api/usage");
-					if (res.ok) {
-						const data = await res.json();
-						setRequestCount(data.request_count);
-					}
-				} catch (err) {
-					console.error("Failed to fetch usage:", err);
-				}
-			};
-			fetchUsage();
-		}
-	}, [userId]);
+    const [requestCount, setRequestCount] = useState<number | null>(null);
+    const [showWelcome, setShowWelcome] = useState(true);
 
-	useEffect(() => {
-		const timer = setTimeout(() => {
-			setShowWelcome(false);
-		}, 10000);
-		return () => clearTimeout(timer);
-	}, []);
+    // Fetch user AI quota usage
+    useEffect(() => {
+        if (userId) {
+            const fetchUsage = async () => {
+                try {
+                    const res = await fetch("/api/usage");
+                    if (res.ok) {
+                        const data = await res.json();
+                        setRequestCount(data.request_count);
+                    }
+                } catch (err) {
+                    console.error("Failed to fetch usage:", err);
+                }
+            };
+            fetchUsage();
+        }
+    }, [userId]);
 
-	useEffect(() => {
-		bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-	}, [messages, isLoading]);
+    // Hide welcome popup after 10 seconds
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setShowWelcome(false);
+        }, 10000);
+        return () => clearTimeout(timer);
+    }, []);
 
-	useEffect(() => {
-		function handleClickOutside(event: MouseEvent) {
-			if (
-				chatRef.current &&
-				!chatRef.current.contains(event.target as Node)
-			) {
-				const btn = document.getElementById("ai-assistant-btn");
-				if (btn && btn.contains(event.target as Node)) return;
-				closeChat();
-			}
-		}
-		if (isOpen) {
-			document.addEventListener("mousedown", handleClickOutside);
-		}
-		return () => {
-			document.removeEventListener("mousedown", handleClickOutside);
-		};
-	}, [isOpen, closeChat]);
+    // Scroll to bottom on new message
+    useEffect(() => {
+        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages, isLoading]);
 
-	useEffect(() => {
-		const el = textareaRef.current;
-		if (!el) return;
-		el.style.height = "0px";
-		const nextHeight = Math.min(el.scrollHeight, 180);
-		el.style.height = `${Math.max(nextHeight, 44)}px`;
-	}, [input]);
+    // Close chat on click outside
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (chatRef.current && !chatRef.current.contains(event.target as Node)) {
+                const btn = document.getElementById("ai-assistant-btn");
+                if (btn && btn.contains(event.target as Node)) return;
+                closeChat();
+            }
+        }
+        if (isOpen) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [isOpen, closeChat]);
 
-	const handleSend = () => {
-		if (!userId) {
-			router.push("/sign-in");
-			return;
-		}
-		const msg = input.trim();
-		if (!msg || isLoading) return;
-		setInput("");
-		if (requestCount !== null) {
-			setRequestCount((c) => (c !== null ? c + 1 : c));
-		}
-		sendMessage(msg);
-	};
+    // Auto-resize text area
+    useEffect(() => {
+        const el = textareaRef.current;
+        if (!el) return;
+        el.style.height = "0px";
+        const nextHeight = Math.min(el.scrollHeight, 180);
+        el.style.height = `${Math.max(nextHeight, 44)}px`;
+    }, [input]);
 
-	return (
-		<>
-			{/* Welcome Popup */}
-			<AnimatePresence>
-				{!isOpen && showWelcome && (
-					<motion.div
-						initial={{ opacity: 0, y: 10, scale: 0.95 }}
-						animate={{ opacity: 1, y: 0, scale: 1 }}
-						exit={{ opacity: 0, scale: 0.95 }}
-						className="fixed bottom-[90] right-6 z-50 w-64 bg-card border border-border rounded-2xl p-4 shadow-2xl origin-bottom-right"
-					>
-						<button
-							onClick={() => setShowWelcome(false)}
-							className="absolute top-2.5 right-2.5 text-muted-foreground hover:text-foreground p-1"
-						>
-							<X size={14} />
-						</button>
-						<p className="text-sm leading-relaxed pr-3 font-medium">
-							Hi, I'm Varsiti AI, your coding companion. Feel free to ask any question to improve learning!
-						</p>
-						<div className="absolute -bottom-2 right-6 w-4 h-4 bg-card border-b border-r border-border transform rotate-45" />
-					</motion.div>
-				)}
-			</AnimatePresence>
+    // Automatically send prompt if triggered from outside (e.g. Practice Questions)
+    useEffect(() => {
+        if (externalPrompt && isOpen) {
+            append({ role: 'user', content: externalPrompt });
+            clearExternalPrompt();
+            
+            if (requestCount !== null) {
+                setRequestCount((c) => (c !== null ? c + 1 : c));
+            }
+        }
+    }, [externalPrompt, isOpen, append, clearExternalPrompt, requestCount]);
 
-			{/* Floating trigger button */}
-			<AnimatePresence>
-				{!isOpen && (
-					<motion.button
-						id="ai-assistant-btn"
-						initial={{ scale: 0, opacity: 0 }}
-						animate={{ scale: 1, opacity: 1 }}
-						exit={{ scale: 0, opacity: 0 }}
-						onClick={() => openChat()}
-						className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-2xl flex items-center justify-center hover:scale-110 transition-transform"
-						style={{
-							boxShadow:
-								"0 0 20px var(--primary), 0 4px 16px rgba(0,0,0,0.3)",
-						}}
-					>
-						<Bot size={26} />
-						<span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-green-400 border-2 border-background animate-pulse" />
-					</motion.button>
-				)}
-			</AnimatePresence>
+    // Handle the actual form submission
+    const onFormSubmit = (e?: React.FormEvent) => {
+        e?.preventDefault();
+        
+        if (!userId) {
+            router.push("/sign-in");
+            return;
+        }
+        
+        if (!input || input.trim() === "" || isLoading) return;
+        
+        if (requestCount !== null) {
+            setRequestCount((c) => (c !== null ? c + 1 : c));
+        }
+        
+        // This SDK method automatically sends the input to /api/chat and clears the textarea
+        handleSubmit(e as any);
+    };
 
-			{/* Chat panel */}
-			<AnimatePresence>
-				{isOpen && (
-					<motion.div
-						ref={chatRef}
-						initial={{ opacity: 0, y: 40, scale: 0.95 }}
-						animate={{ opacity: 1, y: 0, scale: 1 }}
-						exit={{ opacity: 0, y: 40, scale: 0.95 }}
-						transition={{
-							type: "spring",
-							stiffness: 300,
-							damping: 30,
-						}}
-						className={`fixed bottom-4 right-4 left-4 sm:left-auto sm:bottom-6 sm:right-6 z-50 ${isExpandedComposer ? "sm:w-2xl h-[min(52rem,92vh)]" : hasConversation ? "sm:w-120 h-[min(44rem,90vh)]" : "sm:w-96 h-140 max-h-[90vh]"} w-auto bg-card border border-border rounded-3xl shadow-2xl flex flex-col overflow-hidden`}
-						style={{
-							boxShadow:
-								"0 0 40px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.05)",
-						}}
-					>
-						{/* Header */}
-						<div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-primary/5 shrink-0">
-							<div className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
-								<Bot size={18} />
-							</div>
-							<div className="flex-1">
-								<p className="font-bold text-sm">Varsiti AI</p>
-								<p className="text-[10px] text-muted-foreground">
-									C++ Learning Assistant
-								</p>
-							</div>
-							<button
-								onClick={closeChat}
-								className="p-1.5 rounded-xl hover:bg-secondary text-muted-foreground transition-colors"
-							>
-								<X size={18} />
-							</button>
-						</div>
+    return (
+        <>
+            {/* Welcome Popup */}
+            <AnimatePresence>
+                {!isOpen && showWelcome && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="fixed bottom-[90] right-6 z-50 w-64 bg-card border border-border rounded-2xl p-4 shadow-2xl origin-bottom-right"
+                    >
+                        <button
+                            onClick={() => setShowWelcome(false)}
+                            className="absolute top-2.5 right-2.5 text-muted-foreground hover:text-foreground p-1"
+                        >
+                            <X size={14} />
+                        </button>
+                        <p className="text-sm leading-relaxed pr-3 font-medium">
+                            Hi, I'm Varsiti AI, your coding companion. Feel free to ask any question to improve learning!
+                        </p>
+                        <div className="absolute -bottom-2 right-6 w-4 h-4 bg-card border-b border-r border-border transform rotate-45" />
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
-						{/* Messages */}
-						<div className="flex-1 overflow-y-auto p-4 space-y-4">
-							{messages.length === 0 && (
-								<div className="text-center py-8 space-y-3">
-									<div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
-										<Bot size={32} />
-									</div>
-									<p className="font-bold">
-										Hi! I&apos;m Varsiti AI 👋
-									</p>
-									<p className="text-sm text-muted-foreground">
-										Ask me anything about C++, OOP, or
-										request code examples!
-									</p>
-								</div>
-							)}
+            {/* Floating trigger button */}
+            <AnimatePresence>
+                {!isOpen && (
+                    <motion.button
+                        id="ai-assistant-btn"
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0, opacity: 0 }}
+                        onClick={() => openChat()}
+                        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-2xl flex items-center justify-center hover:scale-110 transition-transform"
+                        style={{
+                            boxShadow:
+                                "0 0 20px var(--primary), 0 4px 16px rgba(0,0,0,0.3)",
+                        }}
+                    >
+                        <Bot size={26} />
+                        <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-green-400 border-2 border-background animate-pulse" />
+                    </motion.button>
+                )}
+            </AnimatePresence>
 
-							{messages.map((msg, i) => (
-								<motion.div
-									key={i}
-									initial={{ opacity: 0, y: 8 }}
-									animate={{ opacity: 1, y: 0 }}
-								>
-									<MessageBubble
-										role={msg.role}
-										content={msg.content}
-									/>
-								</motion.div>
-							))}
+            {/* Chat panel */}
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div
+                        ref={chatRef}
+                        initial={{ opacity: 0, y: 40, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 40, scale: 0.95 }}
+                        transition={{
+                            type: "spring",
+                            stiffness: 300,
+                            damping: 30,
+                        }}
+                        className={`fixed bottom-4 right-4 left-4 sm:left-auto sm:bottom-6 sm:right-6 z-50 ${isExpandedComposer ? "sm:w-lg h-[min(52rem,92vh)]" : hasConversation ? "sm:w-120 h-[min(44rem,90vh)]" : "sm:w-96 h-140 max-h-[90vh]"} w-auto bg-card border border-border rounded-3xl shadow-2xl flex flex-col overflow-hidden`}
+                        style={{
+                            boxShadow:
+                                "0 0 40px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.05)",
+                        }}
+                    >
+                        {/* Header */}
+                        <div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-primary/5 shrink-0">
+                            <div className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+                                <Bot size={18} />
+                            </div>
+                            <div className="flex-1">
+                                <p className="font-bold text-sm">Varsiti AI</p>
+                                <p className="text-[10px] text-muted-foreground">
+                                    C++ Learning Assistant
+                                </p>
+                            </div>
+                            <button
+                                onClick={closeChat}
+                                className="p-1.5 rounded-xl hover:bg-secondary text-muted-foreground transition-colors"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
 
-							{isLoading && (
-								<div className="flex items-center gap-2.5">
-									<div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center">
-										<Bot
-											size={15}
-											className="text-primary"
-										/>
-									</div>
-									<div className="flex gap-1.5 px-4 py-3 bg-secondary rounded-2xl rounded-tl-sm">
-										<span
-											className="w-2 h-2 rounded-full bg-primary/60 animate-bounce"
-											style={{ animationDelay: "0ms" }}
-										/>
-										<span
-											className="w-2 h-2 rounded-full bg-primary/60 animate-bounce"
-											style={{ animationDelay: "150ms" }}
-										/>
-										<span
-											className="w-2 h-2 rounded-full bg-primary/60 animate-bounce"
-											style={{ animationDelay: "300ms" }}
-										/>
-									</div>
-								</div>
-							)}
-							<div ref={bottomRef} />
-						</div>
+                        {/* Messages */}
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                            {visibleMessages.length === 0 && (
+                                <div className="text-center py-8 space-y-3">
+                                    <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
+                                        <Bot size={32} />
+                                    </div>
+                                    <p className="font-bold">
+                                        Hi! I&apos;m Varsiti AI 👋
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                        Ask me anything about C++, OOP, or
+                                        request code examples!
+                                    </p>
+                                </div>
+                            )}
 
-						{/* Input */}
-						<div
-							className={`p-4 border-t border-border shrink-0 ${isExpandedComposer ? "bg-card/80 backdrop-blur-sm" : ""}`}
-						>
-							{typeof requestCount === 'number' && (
-								<div className="mb-3 flex justify-center">
-									<span className="bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full">
-										Remaining AI uses today: {Math.max(0, 10 - requestCount)}
-									</span>
-								</div>
-							)}
-							<div
-								className={`flex gap-2.5 items-end bg-secondary rounded-2xl px-4 border border-border focus-within:border-primary transition-colors ${isExpandedComposer ? "py-4" : "py-3"}`}
-							>
-								<textarea
-									ref={textareaRef}
-									value={input}
-									onChange={(e) => setInput(e.target.value)}
-									onKeyDown={(e) => {
-										if (e.key === "Enter" && !e.shiftKey) {
-											e.preventDefault();
-											handleSend();
-										}
-									}}
-									placeholder="Ask about C++ concepts, code..."
-									rows={1}
-									className={`flex-1 bg-transparent resize-none outline-none text-sm leading-relaxed overflow-y-auto pr-1 ${isExpandedComposer ? "min-h-16 max-h-56" : "min-h-11 max-h-44"}`}
-									style={{ scrollbarWidth: "none" }}
-								/>
-								<button
-									onClick={handleSend}
-									disabled={!input.trim() || isLoading}
-									className="p-2 rounded-xl bg-primary text-primary-foreground disabled:opacity-50 transition-all hover:scale-105 active:scale-95 shrink-0"
-								>
-									{isLoading ? (
-										<Loader2
-											size={16}
-											className="animate-spin"
-										/>
-									) : (
-										<Send size={16} />
-									)}
-								</button>
-							</div>
-							<p className="text-[10px] text-muted-foreground text-center mt-2">
-								Enter to send · Shift+Enter for newline
-							</p>
-						</div>
-					</motion.div>
-				)}
-			</AnimatePresence>
-		</>
-	);
+                            {visibleMessages.map((msg: any, i: number) => (
+                                <motion.div
+                                    key={msg.id || i}
+                                    initial={{ opacity: 0, y: 8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                >
+                                    <MessageBubble
+                                        role={msg.role as "user" | "assistant"}
+                                        content={msg.content}
+                                    />
+                                </motion.div>
+                            ))}
+
+                            {isLoading && (
+                                <div className="flex items-center gap-2.5">
+                                    <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center">
+                                        <Bot
+                                            size={15}
+                                            className="text-primary"
+                                        />
+                                    </div>
+                                    <div className="flex gap-1.5 px-4 py-3 bg-secondary rounded-2xl rounded-tl-sm">
+                                        <span
+                                            className="w-2 h-2 rounded-full bg-primary/60 animate-bounce"
+                                            style={{ animationDelay: "0ms" }}
+                                        />
+                                        <span
+                                            className="w-2 h-2 rounded-full bg-primary/60 animate-bounce"
+                                            style={{ animationDelay: "150ms" }}
+                                        />
+                                        <span
+                                            className="w-2 h-2 rounded-full bg-primary/60 animate-bounce"
+                                            style={{ animationDelay: "300ms" }}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                            <div ref={bottomRef} />
+                        </div>
+
+                        {/* Input Area */}
+                        <div
+                            className={`p-4 border-t border-border shrink-0 ${isExpandedComposer ? "bg-card/80 backdrop-blur-sm" : ""}`}
+                        >
+                            {typeof requestCount === 'number' && (
+                                <div className="mb-3 flex justify-center">
+                                    <span className="bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full">
+                                        Remaining AI uses today: {Math.max(0, 10 - requestCount)}
+                                    </span>
+                                </div>
+                            )}
+                            
+                            {/* Converted to a form to natively support useChat's handleSubmit */}
+                            <form 
+                                onSubmit={onFormSubmit}
+                                className={`flex gap-2.5 items-end bg-secondary rounded-2xl px-4 border border-border focus-within:border-primary transition-colors ${isExpandedComposer ? "py-4" : "py-3"}`}
+                            >
+                                <textarea
+                                    ref={textareaRef}
+                                    value={input}
+                                    onChange={handleInputChange}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" && !e.shiftKey) {
+                                            e.preventDefault();
+                                            onFormSubmit();
+                                        }
+                                    }}
+                                    placeholder="Ask about C++ concepts, code..."
+                                    rows={1}
+                                    className={`flex-1 bg-transparent resize-none outline-none text-sm leading-relaxed overflow-y-auto pr-1 ${isExpandedComposer ? "min-h-16 max-h-56" : "min-h-11 max-h-44"}`}
+                                    style={{ scrollbarWidth: "none" }}
+                                />
+                                <button
+                                    type="submit"
+                                    disabled={!input || input.trim() === "" || isLoading}
+                                    className="p-2 rounded-xl bg-primary text-primary-foreground disabled:opacity-50 transition-all hover:scale-105 active:scale-95 shrink-0"
+                                >
+                                    {isLoading ? (
+                                        <Loader2
+                                            size={16}
+                                            className="animate-spin"
+                                        />
+                                    ) : (
+                                        <Send size={16} />
+                                    )}
+                                </button>
+                            </form>
+                            <p className="text-[10px] text-muted-foreground text-center mt-2">
+                                Enter to send · Shift+Enter for newline
+                            </p>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </>
+    );
 }
