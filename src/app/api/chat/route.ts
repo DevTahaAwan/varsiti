@@ -3,11 +3,8 @@ import { streamText } from 'ai';
 
 // Allow streaming responses up to 60 seconds
 export const maxDuration = 60;
-<<<<<<< HEAD
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
-=======
->>>>>>> fc6652ebcd40d8df1d64eb57ea2483c1213e2c44
 
 const SYSTEM_PROMPT = `You are Varsiti AI, a friendly and expert C++ tutor embedded in the Varsiti learning platform.
 
