@@ -44,7 +44,7 @@ export async function POST(req: Request) {
   try {
     // Attempt 1: Groq for speed
     const result = await streamText({
-      model: groq('llama3-8b-8192'),
+      model: groq('openai/gpt-oss-120b'),
       system: SYSTEM_PROMPT,
       messages,
     });
