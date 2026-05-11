@@ -156,8 +156,11 @@ export default function AIAssistant() {
     const { userId } = useAuth();
     const router = useRouter();
     
-    // SDK Hook to handle streaming and state
-    const { messages, input, handleInputChange, handleSubmit, isLoading, append } = useChat() as any;
+    // SDK Hook - @ai-sdk/react v3: useChat no longer manages input state
+    const { messages, sendMessage, status, stop, setMessages, error } = useChat();
+    
+    // Local input state (required in @ai-sdk/react v3)
+    const [input, setInput] = useState("");
 
     const bottomRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -200,7 +203,7 @@ export default function AIAssistant() {
     // Scroll to bottom on new message
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages, isLoading]);
+    }, [messages, status]);
 
     // Close chat on click outside
     useEffect(() => {
@@ -231,14 +234,14 @@ export default function AIAssistant() {
     // Automatically send prompt if triggered from outside (e.g. Practice Questions)
     useEffect(() => {
         if (externalPrompt && isOpen) {
-            append({ role: 'user', content: externalPrompt });
+            sendMessage({ text: externalPrompt });
             clearExternalPrompt();
             
             if (requestCount !== null) {
                 setRequestCount((c) => (c !== null ? c + 1 : c));
             }
         }
-    }, [externalPrompt, isOpen, append, clearExternalPrompt, requestCount]);
+    }, [externalPrompt, isOpen, sendMessage, clearExternalPrompt, requestCount]);
 
     // Handle the actual form submission
     const onFormSubmit = (e?: React.FormEvent) => {
@@ -249,14 +252,16 @@ export default function AIAssistant() {
             return;
         }
         
-        if (!input || input.trim() === "" || isLoading) return;
+        const trimmed = input.trim();
+        if (!trimmed || status !== 'ready') return;
         
         if (requestCount !== null) {
             setRequestCount((c) => (c !== null ? c + 1 : c));
         }
         
-        // This SDK method automatically sends the input to /api/chat and clears the textarea
-        handleSubmit(e as any);
+        // @ai-sdk/react v3: sendMessage() handles submission and resets nothing — we clear input manually
+        sendMessage({ text: trimmed });
+        setInput("");
     };
 
     return (
@@ -373,7 +378,7 @@ export default function AIAssistant() {
                                 </motion.div>
                             ))}
 
-                            {isLoading && (
+                            {(status === 'submitted' || status === 'streaming') && (
                                 <div className="flex items-center gap-2.5">
                                     <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center">
                                         <Bot
@@ -420,7 +425,7 @@ export default function AIAssistant() {
                                 <textarea
                                     ref={textareaRef}
                                     value={input}
-                                    onChange={handleInputChange}
+                                    onChange={(e) => setInput(e.target.value)}
                                     onKeyDown={(e) => {
                                         if (e.key === "Enter" && !e.shiftKey) {
                                             e.preventDefault();
@@ -434,10 +439,10 @@ export default function AIAssistant() {
                                 />
                                 <button
                                     type="submit"
-                                    disabled={!input || input.trim() === "" || isLoading}
+                                    disabled={!input || input.trim() === "" || status !== 'ready'}
                                     className="p-2 rounded-xl bg-primary text-primary-foreground disabled:opacity-50 transition-all hover:scale-105 active:scale-95 shrink-0"
                                 >
-                                    {isLoading ? (
+                                    {status === 'submitted' || status === 'streaming' ? (
                                         <Loader2
                                             size={16}
                                             className="animate-spin"

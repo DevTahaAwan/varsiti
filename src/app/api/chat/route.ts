@@ -1,6 +1,6 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { createGroq } from '@ai-sdk/groq';
-import { streamText } from 'ai';
+import { streamText, convertToModelMessages } from 'ai';
 
 export const maxDuration = 60;
 export const runtime = 'edge';
@@ -40,15 +40,16 @@ const groq = createGroq({
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
+  const modelMessages = await convertToModelMessages(messages);
 
   try {
     // ATTEMPT 1: GROQ (Must use a valid Groq model like Llama 3.1)
     const result = await streamText({
       model: groq('llama-3.1-8b-instant'), 
       system: SYSTEM_PROMPT,
-      messages,
+      messages: modelMessages,
     });
-    return result.toTextStreamResponse();
+    return result.toUIMessageStreamResponse();
     
   } catch (error) {
     console.error("Groq attempt failed, falling back to OpenRouter:", error);
@@ -58,9 +59,9 @@ export async function POST(req: Request) {
       const fallbackResult = await streamText({
         model: openrouter('openai/gpt-oss-120b'),
         system: SYSTEM_PROMPT,
-        messages,
+        messages: modelMessages,
       });
-      return fallbackResult.toTextStreamResponse();
+      return fallbackResult.toUIMessageStreamResponse();
       
     } catch (fallbackError) {
       console.error("OpenRouter fallback also failed:", fallbackError);
