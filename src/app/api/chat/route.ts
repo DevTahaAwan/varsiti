@@ -42,20 +42,29 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   try {
-    // Attempt 1: Groq for speed
+    // ATTEMPT 1: GROQ (Must use a valid Groq model like Llama 3.1)
     const result = await streamText({
-      model: groq('openai/gpt-oss-120b'),
+      model: groq('llama-3.1-8b-instant'), 
       system: SYSTEM_PROMPT,
       messages,
     });
     return result.toTextStreamResponse();
+    
   } catch (error) {
-    // Attempt 2: Fallback to OpenRouter if Groq fails
-    const fallbackResult = await streamText({
-      model: openrouter('meta-llama/llama-3-8b-instruct:free'),
-      system: SYSTEM_PROMPT,
-      messages,
-    });
-    return fallbackResult.toTextStreamResponse();
+    console.error("Groq attempt failed, falling back to OpenRouter:", error);
+    
+    // ATTEMPT 2: OPENROUTER (Using the requested model)
+    try {
+      const fallbackResult = await streamText({
+        model: openrouter('openai/gpt-oss-120b'),
+        system: SYSTEM_PROMPT,
+        messages,
+      });
+      return fallbackResult.toTextStreamResponse();
+      
+    } catch (fallbackError) {
+      console.error("OpenRouter fallback also failed:", fallbackError);
+      return new Response("Error connecting to AI providers.", { status: 500 });
+    }
   }
 }
