@@ -403,6 +403,14 @@ export default function AIAssistant() {
                                 </div>
                             )}
                             <div ref={bottomRef} />
+                            {error && (
+                                <div className="flex justify-center mt-4 mb-2">
+                                    <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs px-4 py-2 rounded-xl text-center max-w-[85%]">
+                                        ⚠️ Connection Error: Please check your API keys or model availability.
+                                        <br/><span className="opacity-70">{error.message}</span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Input Area */}
