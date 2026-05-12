@@ -3,7 +3,14 @@
 import { use, useCallback, useEffect, useState, useRef, useMemo } from "react";
 import { saveProgress } from "@/app/actions/progress";
 import { AnimatePresence, motion } from "framer-motion";
-import Editor, { type BeforeMount, type OnMount } from "@monaco-editor/react";
+import Editor, { type BeforeMount, type OnMount, loader } from "@monaco-editor/react";
+
+// Configure Monaco loader to use a stable CDN and version
+loader.config({
+  paths: {
+    vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs",
+  },
+});
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -796,8 +803,13 @@ export default function StudyClient({
         insertSpaces: true,
         detectIndentation: true,
       }}
+      loading={
+        <div className="flex h-full items-center justify-center bg-[#0F111A]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      }
     />
-  ), [practiceIndex, studyUserCode, handleBeforeMount]);
+  ), [practiceIndex, handleBeforeMount]);
 
   const codingEditorMemo = useMemo(() => {
     if (!currentCodingQuestion) return null;
@@ -825,6 +837,11 @@ export default function StudyClient({
           padding: { top: 16, bottom: 16 },
           lineNumbers: "on",
         }}
+        loading={
+          <div className="flex h- items-center justify-center bg-[#0F111A]">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        }
       />
     );
   }, [currentCodingQuestion?.id, examState?.sectionStatus.coding, handleBeforeMount]);
@@ -948,6 +965,11 @@ export default function StudyClient({
                           folding: true,
                           bracketPairColorization: { enabled: true },
                         }}
+                        loading={
+                          <div className="flex h-32 items-center justify-center bg-[#1e1e1e]">
+                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                          </div>
+                        }
                       />
                     </div>
                   )}
@@ -1555,7 +1577,7 @@ export default function StudyClient({
                                   value={givenOutput}
                                   onChange={(event) => handleOutputChange(questionIndex, event.target.value)}
                                   disabled={disabled}
-                                  className="min-h-[110px] w-full rounded-2xl border border-border bg-card px-4 py-3 text-sm outline-none transition-colors focus:border-primary disabled:cursor-not-allowed disabled:bg-secondary/40"
+                                  className="min-h-27.5 w-full rounded-2xl border border-border bg-card px-4 py-3 text-sm outline-none transition-colors focus:border-primary disabled:cursor-not-allowed disabled:bg-secondary/40"
                                   placeholder="Write the exact output here..."
                                 />
                               </div>

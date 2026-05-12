@@ -19,6 +19,9 @@ export const metadata: Metadata = {
 	},
 	description:
 		"Master C++, OOP, and DSA with real-time AI guidance. Built for students who want to excel in coding and exams.",
+	icons: {
+		icon: "/logo.png",
+	},
 	openGraph: {
 		title: "Varsiti | Your AI-Powered C++ Learning Assistant",
 		description:
