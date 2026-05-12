@@ -3,9 +3,23 @@
 import { use, useCallback, useEffect, useState, useRef, useMemo } from "react";
 import { saveProgress } from "@/app/actions/progress";
 import { AnimatePresence, motion } from "framer-motion";
-import Editor, { type BeforeMount, type OnMount, loader } from "@monaco-editor/react";
+import dynamic from "next/dynamic";
+import { loader, type BeforeMount, type OnMount } from "@monaco-editor/react";
 
-// Configure Monaco loader to use a stable CDN and version
+// 2. Wrap Editor in dynamic to disable Server-Side Rendering
+const Editor = dynamic(() => import("@monaco-editor/react"), { 
+  ssr: false,
+  loading: () => (
+    <div className="flex h-full items-center justify-center bg-[#0F111A]">
+      <div className="flex flex-col items-center gap-3">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+        <p className="text-xs font-medium text-muted-foreground">Initializing Engine...</p>
+      </div>
+    </div>
+  )
+});
+
+// Configure Monaco loader
 loader.config({
   paths: {
     vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs",

@@ -18,8 +18,8 @@ const cspDirectives = [
   "form-action 'self'",
   "img-src 'self' data: blob: https://img.clerk.com https:",
   "font-src 'self' data:",
-  "style-src 'self' 'unsafe-inline'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://clerk.varsiti.xyz https://*.clerk.accounts.dev https://*.clerk.dev https://*.clerk.com https://challenges.cloudflare.com",
+  "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net", // Added CDN here
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://clerk.varsiti.xyz https://*.clerk.accounts.dev https://*.clerk.dev https://*.clerk.com https://challenges.cloudflare.com", // Added CDN here
   "connect-src 'self' https://*.supabase.co https://clerk.varsiti.xyz https://*.clerk.accounts.dev https://*.clerk.dev https://*.clerk.com https://api.emailjs.com https://api.openrouter.ai",
   "frame-src https://*.clerk.accounts.dev https://*.clerk.dev https://*.clerk.com https://challenges.cloudflare.com",
   "worker-src 'self' blob: https://clerk.varsiti.xyz https://*.clerk.accounts.dev https://*.clerk.dev https://*.clerk.com",
