@@ -157,7 +157,7 @@ export default function AIAssistant() {
     const router = useRouter();
     
     // SDK Hook - @ai-sdk/react v3: useChat no longer manages input state
-    const { messages, sendMessage, status, stop, setMessages, error } = useChat();
+    const { messages, sendMessage, status, stop, setMessages, error, clearError } = useChat() as any;
     
     // Local input state (required in @ai-sdk/react v3)
     const [input, setInput] = useState("");
@@ -234,6 +234,7 @@ export default function AIAssistant() {
     // Automatically send prompt if triggered from outside (e.g. Practice Questions)
     useEffect(() => {
         if (externalPrompt && isOpen) {
+            if (status === 'error') clearError?.();
             sendMessage({ text: externalPrompt });
             clearExternalPrompt();
             
@@ -241,7 +242,7 @@ export default function AIAssistant() {
                 setRequestCount((c) => (c !== null ? c + 1 : c));
             }
         }
-    }, [externalPrompt, isOpen, sendMessage, clearExternalPrompt, requestCount]);
+    }, [externalPrompt, isOpen, sendMessage, clearExternalPrompt, requestCount, status, clearError]);
 
     // Handle the actual form submission
     const onFormSubmit = (e?: React.FormEvent) => {
@@ -253,7 +254,11 @@ export default function AIAssistant() {
         }
         
         const trimmed = input.trim();
-        if (!trimmed || status !== 'ready') return;
+        const canSend = status === 'ready' || status === 'error';
+        if (!trimmed || !canSend) return;
+        
+        // Reset error state before retrying
+        if (status === 'error') clearError?.();
         
         if (requestCount !== null) {
             setRequestCount((c) => (c !== null ? c + 1 : c));
@@ -378,7 +383,7 @@ export default function AIAssistant() {
                                 </motion.div>
                             ))}
 
-                            {(status === 'submitted' || status === 'streaming') && (
+                            {(status === 'submitted' || status === 'streaming') && status !== 'error' && (
                                 <div className="flex items-center gap-2.5">
                                     <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center">
                                         <Bot
@@ -447,10 +452,10 @@ export default function AIAssistant() {
                                 />
                                 <button
                                     type="submit"
-                                    disabled={!input || input.trim() === "" || status !== 'ready'}
+                                    disabled={!input || input.trim() === "" || (status !== 'ready' && status !== 'error')}
                                     className="p-2 rounded-xl bg-primary text-primary-foreground disabled:opacity-50 transition-all hover:scale-105 active:scale-95 shrink-0"
                                 >
-                                    {status === 'submitted' || status === 'streaming' ? (
+                                    {(status === 'submitted' || status === 'streaming') && status !== 'error' ? (
                                         <Loader2
                                             size={16}
                                             className="animate-spin"
