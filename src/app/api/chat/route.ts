@@ -1,6 +1,6 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { createGroq } from '@ai-sdk/groq';
-import { streamText, convertToModelMessages } from 'ai';
+import { streamText, convertToModelMessages, UIMessage } from 'ai';
 
 export const maxDuration = 60;
 export const runtime = 'edge';
@@ -29,43 +29,60 @@ Rules:
 - Keep explanations concise but thorough
 - If you detect a bug, point it out clearly`;
 
+const groq = createGroq({
+  apiKey: process.env.GROQ_API_KEY,
+});
+
 const openrouter = createOpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
   apiKey: process.env.OPENROUTER_API_KEY,
 });
 
-const groq = createGroq({
-  apiKey: process.env.GROQ_API_KEY,
-});
-
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
   const modelMessages = await convertToModelMessages(messages);
 
-  try {
-    // ATTEMPT 1: GROQ (Must use a valid Groq model like Llama 3.1)
-    const result = await streamText({
-      model: groq('llama-3.1-8b-instant'), 
+  // Try Groq first, fall back to OpenRouter
+  const useGroq = async () => {
+    const result = streamText({
+      model: groq('llama-3.1-8b-instant'),
       system: SYSTEM_PROMPT,
       messages: modelMessages,
     });
-    return result.toUIMessageStreamResponse();
-    
+    return result.toUIMessageStreamResponse({
+      onError: (error) => {
+        if (error instanceof Error) return error.message;
+        return 'An error occurred with the AI provider.';
+      },
+    });
+  };
+
+  const useOpenRouter = async () => {
+    const result = streamText({
+      model: openrouter('meta-llama/llama-3.1-8b-instruct:free'),
+      system: SYSTEM_PROMPT,
+      messages: modelMessages,
+    });
+    return result.toUIMessageStreamResponse({
+      onError: (error) => {
+        if (error instanceof Error) return error.message;
+        return 'An error occurred with the fallback AI provider.';
+      },
+    });
+  };
+
+  try {
+    return await useGroq();
   } catch (error) {
-    console.error("Groq attempt failed, falling back to OpenRouter:", error);
-    
-    // ATTEMPT 2: OPENROUTER (Using the requested model)
+    console.error('Groq failed, falling back to OpenRouter:', error);
     try {
-      const fallbackResult = await streamText({
-        model: openrouter('openai/gpt-oss-120b'),
-        system: SYSTEM_PROMPT,
-        messages: modelMessages,
-      });
-      return fallbackResult.toUIMessageStreamResponse();
-      
+      return await useOpenRouter();
     } catch (fallbackError) {
-      console.error("OpenRouter fallback also failed:", fallbackError);
-      return new Response("Error connecting to AI providers.", { status: 500 });
+      console.error('OpenRouter fallback also failed:', fallbackError);
+      return new Response(
+        JSON.stringify({ error: 'All AI providers failed. Please try again later.' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
     }
   }
 }

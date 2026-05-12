@@ -1,0 +1,12 @@
+
+> varsiti@1.5.7 dev
+> next dev
+
+▲ Next.js 16.2.4 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://172.27.208.1:3000
+- Environments: .env.local
+✓ Ready in 5.3s
+⚠ Slow filesystem detected. The benchmark took 546ms. If E:\Hafiz Muhammad Taha\Projects\varsiti\.next/dev is a network drive, consider moving it to a local folder.
+See more: https://nextjs.org/docs/app/guides/local-development
+

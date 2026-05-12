@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
 import {
     Bot,
     X,
@@ -102,18 +103,25 @@ function CodeBlock({ code, lang }: { code: string; lang: string }) {
 
 function MessageBubble({
     role,
-    content,
+    parts,
 }: {
     role: "user" | "assistant";
-    content: string;
+    // AI SDK v6 UIMessage parts array
+    parts: Array<{ type: string; text?: string }>;
 }) {
-    const parts = parseMessage(content || "");
+    // Concatenate all text parts into a single string for rendering
+    const textContent = parts
+        .filter((p) => p.type === "text" && p.text)
+        .map((p) => p.text!)
+        .join("");
+
+    const parsed = parseMessage(textContent || "");
 
     if (role === "user") {
         return (
             <div className="flex justify-end">
                 <div className="bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm max-w-[85%] leading-relaxed">
-                    {content}
+                    {textContent}
                 </div>
             </div>
         );
@@ -125,7 +133,7 @@ function MessageBubble({
                 <Bot size={15} />
             </div>
             <div className="max-w-[90%] space-y-1">
-                {parts.map((part, i) => {
+                {parsed.map((part, i) => {
                     if (part.type === "code") {
                         return (
                             <CodeBlock
@@ -155,21 +163,28 @@ export default function AIAssistant() {
     const { isOpen, openChat, closeChat, externalPrompt, clearExternalPrompt } = useAIAssistant();
     const { userId } = useAuth();
     const router = useRouter();
-    
-    // SDK Hook - @ai-sdk/react v3: useChat no longer manages input state
-    const { messages, sendMessage, status, stop, setMessages, error, clearError } = useChat() as any;
-    
-    // Local input state (required in @ai-sdk/react v3)
+
+    // AI SDK v6 (@ai-sdk/react v3): transport must be configured explicitly
+    const { messages, sendMessage, status, stop, error } = useChat({
+        transport: new DefaultChatTransport({ api: "/api/chat" }),
+        onError: (err) => {
+            console.error("[AIAssistant] Chat error:", err);
+        },
+    });
+
+    // Local input state (required in @ai-sdk/react v3 — hook no longer owns input)
     const [input, setInput] = useState("");
 
     const bottomRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const chatRef = useRef<HTMLDivElement>(null);
-    
-    // Filter messages to ensure TypeScript is happy
-    const visibleMessages = messages.filter((m: any) => m.role === 'user' || m.role === 'assistant');
+
+    // Filter to only user & assistant messages
+    const visibleMessages = messages.filter(
+        (m: any) => m.role === "user" || m.role === "assistant",
+    );
     const isExpandedComposer = visibleMessages.length > 0;
-    const hasConversation = isExpandedComposer || (input || '').trim().length > 0;
+    const hasConversation = isExpandedComposer || (input || "").trim().length > 0;
 
     const [requestCount, setRequestCount] = useState<number | null>(null);
     const [showWelcome, setShowWelcome] = useState(true);
@@ -200,7 +215,7 @@ export default function AIAssistant() {
         return () => clearTimeout(timer);
     }, []);
 
-    // Scroll to bottom on new message
+    // Scroll to bottom on new message or status change
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, status]);
@@ -222,7 +237,7 @@ export default function AIAssistant() {
         };
     }, [isOpen, closeChat]);
 
-    // Auto-resize text area
+    // Auto-resize textarea
     useEffect(() => {
         const el = textareaRef.current;
         if (!el) return;
@@ -233,41 +248,37 @@ export default function AIAssistant() {
 
     // Automatically send prompt if triggered from outside (e.g. Practice Questions)
     useEffect(() => {
-        if (externalPrompt && isOpen) {
-            if (status === 'error') clearError?.();
+        if (externalPrompt && isOpen && (status === "ready" || status === "error")) {
             sendMessage({ text: externalPrompt });
             clearExternalPrompt();
-            
             if (requestCount !== null) {
                 setRequestCount((c) => (c !== null ? c + 1 : c));
             }
         }
-    }, [externalPrompt, isOpen, sendMessage, clearExternalPrompt, requestCount, status, clearError]);
+    }, [externalPrompt, isOpen, status, sendMessage, clearExternalPrompt, requestCount]);
 
-    // Handle the actual form submission
+    // Handle form submission
     const onFormSubmit = (e?: React.FormEvent) => {
         e?.preventDefault();
-        
+
         if (!userId) {
             router.push("/sign-in");
             return;
         }
-        
+
         const trimmed = input.trim();
-        const canSend = status === 'ready' || status === 'error';
-        if (!trimmed || !canSend) return;
-        
-        // Reset error state before retrying
-        if (status === 'error') clearError?.();
-        
+        // Allow sending in 'ready' state only; after an error the user retries via the Retry button
+        if (!trimmed || status === "submitted" || status === "streaming") return;
+
         if (requestCount !== null) {
             setRequestCount((c) => (c !== null ? c + 1 : c));
         }
-        
-        // @ai-sdk/react v3: sendMessage() handles submission and resets nothing — we clear input manually
+
         sendMessage({ text: trimmed });
         setInput("");
     };
+
+    const isLoading = status === "submitted" || status === "streaming";
 
     return (
         <>
@@ -287,7 +298,7 @@ export default function AIAssistant() {
                             <X size={14} />
                         </button>
                         <p className="text-sm leading-relaxed pr-3 font-medium">
-                            Hi, I'm Varsiti AI, your coding companion. Feel free to ask any question to improve learning!
+                            Hi, I&apos;m Varsiti AI, your coding companion. Feel free to ask any question to improve learning!
                         </p>
                         <div className="absolute -bottom-2 right-6 w-4 h-4 bg-card border-b border-r border-border transform rotate-45" />
                     </motion.div>
@@ -355,7 +366,7 @@ export default function AIAssistant() {
 
                         {/* Messages */}
                         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                            {visibleMessages.length === 0 && (
+                            {visibleMessages.length === 0 && !error && (
                                 <div className="text-center py-8 space-y-3">
                                     <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
                                         <Bot size={32} />
@@ -378,12 +389,13 @@ export default function AIAssistant() {
                                 >
                                     <MessageBubble
                                         role={msg.role as "user" | "assistant"}
-                                        content={msg.content}
+                                        parts={msg.parts ?? [{ type: "text", text: msg.content ?? "" }]}
                                     />
                                 </motion.div>
                             ))}
 
-                            {(status === 'submitted' || status === 'streaming') && status !== 'error' && (
+                            {/* Typing indicator */}
+                            {isLoading && (
                                 <div className="flex items-center gap-2.5">
                                     <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center">
                                         <Bot
@@ -407,13 +419,28 @@ export default function AIAssistant() {
                                     </div>
                                 </div>
                             )}
+
                             <div ref={bottomRef} />
+
+                            {/* Error banner */}
                             {error && (
-                                <div className="flex justify-center mt-4 mb-2">
+                                <div className="flex flex-col items-center gap-2 mt-4 mb-2">
                                     <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs px-4 py-2 rounded-xl text-center max-w-[85%]">
                                         ⚠️ Connection Error: Please check your API keys or model availability.
-                                        <br/><span className="opacity-70">{error.message}</span>
+                                        <br />
+                                        <span className="opacity-70">{error.message}</span>
                                     </div>
+                                    <button
+                                        onClick={() => {
+                                            if (input.trim()) {
+                                                sendMessage({ text: input.trim() });
+                                                setInput("");
+                                            }
+                                        }}
+                                        className="text-xs text-primary underline underline-offset-2 hover:opacity-70 transition-opacity"
+                                    >
+                                        Retry last message
+                                    </button>
                                 </div>
                             )}
                         </div>
@@ -422,16 +449,15 @@ export default function AIAssistant() {
                         <div
                             className={`p-4 border-t border-border shrink-0 ${isExpandedComposer ? "bg-card/80 backdrop-blur-sm" : ""}`}
                         >
-                            {typeof requestCount === 'number' && (
+                            {typeof requestCount === "number" && (
                                 <div className="mb-3 flex justify-center">
                                     <span className="bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full">
                                         Remaining AI uses today: {Math.max(0, 10 - requestCount)}
                                     </span>
                                 </div>
                             )}
-                            
-                            {/* Converted to a form to natively support useChat's handleSubmit */}
-                            <form 
+
+                            <form
                                 onSubmit={onFormSubmit}
                                 className={`flex gap-2.5 items-end bg-secondary rounded-2xl px-4 border border-border focus-within:border-primary transition-colors ${isExpandedComposer ? "py-4" : "py-3"}`}
                             >
@@ -452,10 +478,10 @@ export default function AIAssistant() {
                                 />
                                 <button
                                     type="submit"
-                                    disabled={!input || input.trim() === "" || (status !== 'ready' && status !== 'error')}
+                                    disabled={!input.trim() || isLoading}
                                     className="p-2 rounded-xl bg-primary text-primary-foreground disabled:opacity-50 transition-all hover:scale-105 active:scale-95 shrink-0"
                                 >
-                                    {(status === 'submitted' || status === 'streaming') && status !== 'error' ? (
+                                    {isLoading ? (
                                         <Loader2
                                             size={16}
                                             className="animate-spin"
